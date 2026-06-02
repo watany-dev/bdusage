@@ -44,15 +44,17 @@ Do not skip these checks.
 | Path | Role |
 |------|------|
 | `src/cli.ts` | CLI entry (`process.exit(runCli(...))`) |
-| `src/cli/run.ts` | Argument parsing, help, version, command dispatch |
-| `src/commands.ts` | Command name registry (`COMMAND_NAMES`) |
-| `src/version.ts` | `TOOL_NAME`, `VERSION` |
-| `src/index.ts` | Library public exports |
-| `build.ts` | Bun.build for `dist/cli.mjs` and library bundle |
+| `src/cli/program.ts` | Commander program, global options, command dispatch |
+| `src/cli/context.ts` | Config load, principal resolution, error mapping |
+| `src/commands/*.ts` | summary, daily, monthly, models, whoami, doctor |
+| `src/sources/cur/` | CUR SQL builders, Athena aggregation |
+| `src/aws/` | STS, Athena clients |
+| `src/bedrock/` | usage-type parser, model normalizer |
+| `src/output/` | table / json / csv formatters |
+| `src/doctor/` | Setup diagnostics |
+| `src/config/` | `config.toml` load/merge |
 | `docs/SPEC.md` | Full product & engineering spec (Draft v0.1) |
 | `docs/ROADMAP.md` | Version-scoped release plan |
-
-Planned modules (see SPEC): config (`~/.config/bdusage/config.toml`), Athena/CUR query layer, AWS SDK clients, report formatters (table/json/csv), `doctor` diagnostics.
 
 ## Commands (v0.1 target)
 

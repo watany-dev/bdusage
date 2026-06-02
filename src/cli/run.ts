@@ -1,25 +1,27 @@
-import { COMMAND_NAMES } from "../commands.js";
 import { TOOL_NAME, VERSION } from "../version.js";
+import { createProgram } from "./program.js";
 
 export function formatVersionLine(): string {
   return `${TOOL_NAME} v${VERSION}`;
 }
 
 export function formatHelpText(): string {
-  const commands = COMMAND_NAMES.join(", ");
   return [
     formatVersionLine(),
     "",
-    "Amazon Bedrock usage and cost CLI (v0.1 in development)",
+    "Amazon Bedrock usage and cost CLI",
     "",
     "Usage:",
     `  npx ${TOOL_NAME} [command] [options]`,
     "",
-    "Commands:",
-    `  ${commands}`,
+    "Commands: summary, daily, monthly, models, whoami, doctor",
+    "",
+    "  (no command)  Same as summary",
+    "",
+    "Global options include --profile, --region, --source, --principal,",
+    "  --principal-role, --all (admin-oriented), --json, --csv, --config.",
     "",
     "Run `npx bdusage doctor` to validate CUR 2.0 / Athena setup.",
-    "See https://github.com/watany-dev/bdusage for documentation.",
   ].join("\n");
 }
 
@@ -31,15 +33,24 @@ export function runCli(argv: readonly string[]): number {
     return 0;
   }
 
-  if (args.includes("--help") || args.includes("-h") || args.length === 0) {
+  if (args.includes("--help") || args.includes("-h")) {
     console.log(formatHelpText());
     return 0;
   }
 
-  const [command] = args;
-  console.error(
-    `${formatVersionLine()}\n` +
-      `Command "${command}" is not implemented yet. See docs/ROADMAP.md (v0.1 MVP).`,
-  );
-  return 1;
+  if (args.length === 0) {
+    const program = createProgram();
+    program.parse([argv[0] ?? "node", TOOL_NAME]);
+    return 0;
+  }
+
+  try {
+    const program = createProgram();
+    program.parse(argv);
+    return 0;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    return 1;
+  }
 }

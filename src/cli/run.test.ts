@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as programModule from "./program.js";
 import { formatHelpText, formatVersionLine, runCli } from "./run.js";
 
 describe("runCli", () => {
@@ -7,18 +8,19 @@ describe("runCli", () => {
   });
 
   it("prints version line", () => {
-    expect(formatVersionLine()).toBe("bdusage v0.0.0");
+    expect(formatVersionLine()).toBe("bdusage v0.1.0");
   });
 
   it("includes commands in help", () => {
     expect(formatHelpText()).toContain("daily");
     expect(formatHelpText()).toContain("doctor");
+    expect(formatHelpText()).toContain("--all (admin-oriented)");
   });
 
   it("exits 0 for --version", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     expect(runCli(["node", "bdusage", "--version"])).toBe(0);
-    expect(log).toHaveBeenCalledWith("bdusage v0.0.0");
+    expect(log).toHaveBeenCalledWith("bdusage v0.1.0");
   });
 
   it("exits 0 for --help", () => {
@@ -34,21 +36,19 @@ describe("runCli", () => {
     expect(log).toHaveBeenCalled();
   });
 
-  it("exits 0 with no args (summary default help)", () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    expect(runCli(["node", "bdusage"])).toBe(0);
-    expect(log).toHaveBeenCalled();
+  it("delegates to program for commands", () => {
+    const parse = vi.fn();
+    vi.spyOn(programModule, "createProgram").mockReturnValue({ parse } as never);
+    runCli(["node", "bdusage", "daily"]);
+    expect(parse).toHaveBeenCalled();
   });
 
-  it("exits 1 for empty command name", () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(runCli(["node", "bdusage", ""])).toBe(1);
-    expect(error.mock.calls[0]?.[0]).toContain('Command ""');
-  });
-
-  it("exits 1 for unimplemented commands", () => {
+  it("handles parse errors", () => {
+    vi.spyOn(programModule, "createProgram").mockImplementation(() => {
+      throw new Error("parse failed");
+    });
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(runCli(["node", "bdusage", "daily"])).toBe(1);
-    expect(error.mock.calls[0]?.[0]).toContain("not implemented");
+    expect(error).toHaveBeenCalledWith("parse failed");
   });
 });

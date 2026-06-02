@@ -3,9 +3,9 @@
 Amazon Bedrock の使用量と利用料金をターミナルから確認する CLI。体験は [`ccusage`](https://ccusage.com/guide/) に近く、AWS の課金データ（実請求）と監視データ（概算）を分けて表示します。
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-v0.1--in%20development-orange)
+![Status](https://img.shields.io/badge/status-v0.1-green)
 
-> **注意**: v0.1 は開発中です。CUR 2.0 + Athena が設定された AWS 環境が必要です。
+> **注意**: v0.1 は CUR 2.0 + Athena が設定された AWS 環境が必要です。`--source` は `cur` / `auto` のみ（Cost Explorer / Logs は v0.2 以降）。
 
 ## 概要
 
