@@ -1,4 +1,5 @@
 import type { AthenaExecutor } from "../aws/athena.js";
+import { createCloudWatchLogsClient, LiveCloudWatchLogsClient } from "../aws/cloudwatch-logs.js";
 import { createCostExplorerClient, LiveCostExplorerClient } from "../aws/cost-explorer.js";
 import { getCallerIdentity } from "../aws/sts.js";
 import type { BdusageConfig } from "../config/schema.js";
@@ -147,6 +148,7 @@ export async function runDoctorChecks(
   const region = config.aws.region ?? "us-east-1";
   const profile = config.aws.profile;
   await appendCeChecks(checks, region, profile);
+  await appendLogsChecks(checks, config, region, profile);
 
   return checks;
 }
@@ -189,6 +191,63 @@ async function appendCeChecks(
     status: "ok",
     message:
       "Use --principal-tag <key=value> with --source ce to filter by cost allocation tag. IAM principal ARN filtering requires CUR (--source cur).",
+  });
+}
+
+async function appendLogsChecks(
+  checks: DoctorCheck[],
+  config: BdusageConfig,
+  region: string,
+  profile?: string,
+): Promise<void> {
+  const logGroup = config.logs.log_group;
+  if (!logGroup) {
+    checks.push({
+      name: "logs_log_group",
+      status: "warn",
+      message: "logs.log_group is not set",
+      fix: `Add to config.toml:
+[logs]
+log_group = "/aws/bedrock/modelinvocations"`,
+    });
+    return;
+  }
+
+  checks.push({
+    name: "logs_log_group",
+    status: "ok",
+    message: logGroup,
+  });
+
+  const logsRegion = config.logs.region ?? region;
+  const client = new LiveCloudWatchLogsClient(createCloudWatchLogsClient(logsRegion, profile));
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    await client.runInsightsQuery({
+      logGroupName: logGroup,
+      queryString: 'fields @timestamp | filter schemaType = "ModelInvocationLog" | limit 1',
+      startTime: now - 86_400,
+      endTime: now,
+    });
+    checks.push({
+      name: "logs_insights_query",
+      status: "ok",
+      message: "CloudWatch Logs Insights can query Bedrock invocation logs",
+    });
+  } catch (error) {
+    checks.push({
+      name: "logs_insights_query",
+      status: "warn",
+      message: error instanceof Error ? error.message : String(error),
+      fix: "Enable Bedrock model invocation logging to CloudWatch Logs (SPEC §7.3). Grant logs:StartQuery, logs:GetQueryResults.",
+    });
+  }
+
+  checks.push({
+    name: "logs_principal_filter",
+    status: "ok",
+    message:
+      "Use --principal self|arn|role with --source logs. identity.arn is filtered in Insights queries; body fields are never queried.",
   });
 }
 

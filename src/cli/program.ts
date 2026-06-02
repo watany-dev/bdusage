@@ -4,6 +4,7 @@ import { runDoctor } from "../commands/doctor.js";
 import { runModels } from "../commands/models.js";
 import { runMonthly } from "../commands/monthly.js";
 import { runSummary } from "../commands/summary.js";
+import { runToday } from "../commands/today.js";
 import { runWhoami } from "../commands/whoami.js";
 import { TOOL_NAME, VERSION } from "../version.js";
 import { buildCommandContext, type GlobalOptions, mapCliError } from "./context.js";
@@ -14,7 +15,7 @@ function attachGlobalOptions(cmd: Command): Command {
   return cmd
     .option("--profile <name>", "AWS profile for API calls")
     .option("--region <region>", "AWS region for API calls")
-    .option("--source <name>", "Data source (cur|ce|auto)", "auto")
+    .option("--source <name>", "Data source (cur|ce|logs|auto)", "auto")
     .option("--principal <arn>", "Filter by IAM principal ARN")
     .option("--principal-role <roleArn>", "Aggregate assumed-role sessions by role ARN")
     .option("--principal-tag <key=value>", "Filter by cost allocation tag (--source ce)")
@@ -68,12 +69,12 @@ function readGlobalOptions(cmd: Command): GlobalOptions {
 }
 
 export function normalizeSource(value: string): GlobalOptions["source"] {
-  if (value === "auto" || value === "cur" || value === "ce") {
+  if (value === "auto" || value === "cur" || value === "ce" || value === "logs") {
     return value;
   }
-  if (value === "logs" || value === "metrics") {
+  if (value === "metrics") {
     throw new Error(
-      `Source "${value}" is not available yet. Use --source cur|ce|auto or see docs/ROADMAP.md.`,
+      `Source "${value}" is not available yet. Use --source cur|ce|logs|auto or see docs/ROADMAP.md.`,
     );
   }
   throw new Error(`Unknown --source: ${value}`);
@@ -120,7 +121,8 @@ export function createProgram(): Command {
   runCmd("monthly", "Monthly usage and cost from CUR", runMonthly);
   runCmd("models", "Per-model usage and cost from CUR", runModels);
   runCmd("whoami", "Show AWS identity and config", runWhoami);
-  runCmd("doctor", "Validate CUR / Athena setup", runDoctor);
+  runCmd("today", "Today's Bedrock usage estimate (requires --source logs)", runToday);
+  runCmd("doctor", "Validate CUR / Athena / Logs setup", runDoctor);
 
   attachGlobalOptions(
     program.action(async function (this: Command) {

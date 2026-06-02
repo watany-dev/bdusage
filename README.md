@@ -3,7 +3,7 @@
 Amazon Bedrock の使用量と利用料金をターミナルから確認する CLI。体験は [`ccusage`](https://ccusage.com/guide/) に近く、AWS の課金データ（実請求）と監視データ（概算）を分けて表示します。
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-v0.2-green)
+![Status](https://img.shields.io/badge/status-v0.3-green)
 
 > **注意**: IAM principal 単位の正確な実コストには CUR 2.0 + Athena が必要です。CUR 未設定時は `--source ce` または `--source auto`（cur → ce フォールバック）で Cost Explorer の actual-lite を利用できます。
 
@@ -13,7 +13,7 @@ Amazon Bedrock の使用量と利用料金をターミナルから確認する C
 
 - 今月・昨日いくら使ったか（自分の IAM principal 単位）
 - どのモデル・トークン種別（input / output / prompt cache）がコストを押し上げているか
-- 請求反映前の「今日」を概算で見たい（v0.3 以降、`--source logs`）
+- 請求反映前の「今日」を概算で見たい（`bdusage today --source logs`）
 - 管理者が全 principal のランキングを見る（`--all`、v0.1 から help に明記）
 
 **最重要方針**: 実請求（actual）と概算（estimate）を混ぜません。出力には常に `source: CUR 2.0 actual` や `source: CloudWatch Logs estimate` のように表示します。
@@ -36,6 +36,9 @@ npx bdusage whoami
 
 # CUR / Athena / 権限の診断
 npx bdusage doctor
+
+# 今日の概算（CloudWatch Logs + Price List API）
+npx bdusage today --source logs
 ```
 
 ## コマンド一覧
@@ -50,7 +53,7 @@ npx bdusage doctor
 | `doctor` | 設定・権限・CUR・Athena の診断 | ✅ |
 | `users --all` | principal / tag 別ランキング（管理者向け） | 計画 |
 | `cache` | prompt cache read/write の内訳 | 計画 |
-| `today --source logs` | 今日の概算（CloudWatch Logs） | v0.3 |
+| `today --source logs` | 今日の概算（CloudWatch Logs） | ✅ |
 
 ## グローバルオプション
 
@@ -92,6 +95,9 @@ npx bdusage daily --since 30d --json
 # CUR 未設定時: Cost Explorer + cost allocation tag
 npx bdusage daily --source ce --principal-tag user=alice --all
 
+# 今日の概算（estimate。本文はクエリに含めない）
+npx bdusage today --source logs --principal self
+
 # 管理者: 全 principal（help に記載のとおり権限が必要）
 npx bdusage users --all --since 30d
 ```
@@ -102,7 +108,7 @@ npx bdusage users --all --since 30d
 |--------|------|------|
 | `cur` | actual | IAM principal 別の正確な実コスト（CUR 2.0 + Athena） |
 | `ce` | actual-lite | CUR 未設定時の fallback（Cost Explorer API） |
-| `logs` | estimate | 今日・直近の速報（v0.3） |
+| `logs` | estimate | 今日の速報（`today` コマンド） |
 | `metrics` | estimate/volume | モデル別全体傾向（principal 別不可） |
 
 金額系レポートのデフォルト優先順位: **cur → ce → 失敗時は `doctor` を案内**。
@@ -127,7 +133,16 @@ database = "cur"
 table = "cost_and_usage_report"
 workgroup = "primary"
 output_location = "s3://my-athena-query-results/bdusage/"
+
+[logs]
+log_group = "/aws/bedrock/modelinvocations"
 ```
+
+### CloudWatch Logs（`today --source logs`）
+
+1. Bedrock コンソールで Model invocation logging を CloudWatch Logs に有効化
+2. `config.toml` の `[logs].log_group` にロググループ名を設定
+3. `logs:StartQuery` / `logs:GetQueryResults` 権限を付与
 
 診断:
 
@@ -170,6 +185,24 @@ Date         Cost      Input     Output    Cache Read  Cache Write  Top Model
 Total        $1.72     361.2k    49.5k     812.0k      24.1k
 ```
 
+### today（estimate）
+
+```text
+bdusage v0.3.0
+source: CloudWatch Logs estimate
+profile: default
+principal: arn:aws:sts::123456789012:assumed-role/BedrockDeveloper/alice@example.com
+period: 2026-06-02
+estimated cost, not billing data
+
+Requests:      42
+Input tokens:  120.5k
+Output tokens: 18.2k
+Latency:       p50 890 ms, p95 2100 ms
+Estimated cost: ~$4.12
+Top model:     Claude 3.5 Sonnet
+```
+
 ## 開発
 
 [Bun](https://bun.sh/) を使用します（`review-codecommit` と同様の CI 構成）。
@@ -204,7 +237,7 @@ bun run build
 |------------|------|
 | **v0.1** | CUR actual MVP — summary / daily / monthly / models / whoami / doctor |
 | **v0.2** | Cost Explorer fallback、`--source ce`、`--principal-tag` |
-| v0.3 | CloudWatch Logs estimate、`today` |
+| **v0.3** | CloudWatch Logs estimate、`today --source logs` |
 | v0.4 | Managed mode（サーバー側 principal スコープ） |
 | v0.5+ | anomaly, budget, CI/Slack 連携 |
 

@@ -20,6 +20,19 @@ vi.mock("../aws/sts.js", () => ({
   getCallerIdentity: vi.fn(),
 }));
 
+const runInsightsQueryMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+
+vi.mock("../aws/cloudwatch-logs.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../aws/cloudwatch-logs.js")>();
+  return {
+    ...actual,
+    createCloudWatchLogsClient: vi.fn(),
+    LiveCloudWatchLogsClient: class {
+      runInsightsQuery = runInsightsQueryMock;
+    },
+  };
+});
+
 vi.mock("../aws/cost-explorer.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../aws/cost-explorer.js")>();
   return {
@@ -113,6 +126,46 @@ describe("runDoctorChecks", () => {
       executeQuery: vi.fn().mockRejectedValue(new Error("AccessDenied")),
     });
     expect(checks.find((c) => c.name === "sample_bedrock_query")?.status).toBe("fail");
+  });
+
+  it("warns when logs log_group is missing", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(
+      { ...config, logs: { log_group: "" } },
+      "/tmp/config.toml",
+      null,
+    );
+    expect(checks.find((c) => c.name === "logs_log_group")?.status).toBe("warn");
+  });
+
+  it("warns when logs insights query fails", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+    runInsightsQueryMock.mockRejectedValueOnce(new Error("AccessDenied"));
+
+    const checks = await runDoctorChecks(
+      { ...config, logs: { log_group: "/aws/bedrock/modelinvocations" } },
+      "/tmp/config.toml",
+      null,
+    );
+    expect(checks.find((c) => c.name === "logs_insights_query")?.status).toBe("warn");
+  });
+
+  it("includes logs principal filter guidance", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(
+      { ...config, logs: { log_group: "/aws/bedrock/modelinvocations" } },
+      "/tmp/config.toml",
+      null,
+    );
+    expect(checks.find((c) => c.name === "logs_insights_query")?.status).toBe("ok");
+    expect(checks.find((c) => c.name === "logs_principal_filter")?.message).toContain(
+      "identity.arn",
+    );
   });
 
   it("includes Cost Explorer tag guidance", async () => {

@@ -1,8 +1,8 @@
 # Local CI tools
 actionlint
 
-# Logs
-logs
+# Logs (root-level log output dirs only; not src/sources/logs/)
+/logs
 *.log
 npm-debug.log*
 yarn-debug.log*

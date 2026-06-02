@@ -60,7 +60,9 @@ Do not skip these checks.
 
 `summary`, `daily`, `monthly`, `models`, `whoami`, `doctor` — `npx bdusage` aliases `summary`.
 
-Not in v0.1: `today --source logs`, Cost Explorer fallback, managed mode, prompt/response body display.
+Not in v0.1: `today --source logs` (v0.3), Cost Explorer fallback (v0.2), managed mode (v0.4), prompt/response body display.
+
+Commands (current): `summary`, `daily`, `monthly`, `models`, `whoami`, `doctor`, `today --source logs`. Use `--source cur|ce|auto` for billing; `--source logs` for estimates only.
 
 ## Domain Rules (must preserve)
 

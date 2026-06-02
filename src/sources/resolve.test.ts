@@ -21,6 +21,20 @@ describe("resolveBillingSource", () => {
     expect(result.resolved).toBe("cur");
   });
 
+  it("rejects logs for billing commands", async () => {
+    const cur = new CurSource({ executeQuery: vi.fn() }, config);
+    const ce = new CeSource({ getCostAndUsage: vi.fn() }, config);
+    await expect(
+      resolveBillingSource(
+        "logs",
+        () => cur,
+        () => ce,
+        config,
+        null,
+      ),
+    ).rejects.toThrow("today --source logs");
+  });
+
   it("returns ce when requested", async () => {
     const cur = new CurSource({ executeQuery: vi.fn() }, config);
     const ce = new CeSource({ getCostAndUsage: vi.fn() }, config);

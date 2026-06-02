@@ -5,12 +5,13 @@ describe("source helpers", () => {
   it("resolves labels", () => {
     expect(resolveSourceLabel("cur")).toBe("CUR 2.0 actual");
     expect(resolveSourceLabel("ce")).toBe("Cost Explorer actual-lite");
+    expect(resolveSourceLabel("logs")).toBe("CloudWatch Logs estimate");
   });
 
   it("validates sources", () => {
     expect(isSourceName("cur")).toBe(true);
     expect(isSourceName("ce")).toBe(true);
     expect(isSourceName("auto")).toBe(true);
-    expect(isSourceName("logs")).toBe(false);
+    expect(isSourceName("logs")).toBe(true);
   });
 });
