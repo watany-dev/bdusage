@@ -3,9 +3,9 @@
 Amazon Bedrock の使用量と利用料金をターミナルから確認する CLI。体験は [`ccusage`](https://ccusage.com/guide/) に近く、AWS の課金データ（実請求）と監視データ（概算）を分けて表示します。
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-v0.3-green)
+![Status](https://img.shields.io/badge/status-v0.3.1-green)
 
-> **注意**: IAM principal 単位の正確な実コストには CUR 2.0 + Athena が必要です。CUR 未設定時は `--source ce` または `--source auto`（cur → ce フォールバック）で Cost Explorer の actual-lite を利用できます。
+> **注意**: IAM principal 単位の正確な実コストには **CUR 2.0** が必要です。読み取りは **DuckDB direct Parquet**（推奨、`cur.duckdb.files`）または **Athena**（`cur.athena`）を選べます。CUR 未設定時は `--source ce` または `--source auto`（cur → ce フォールバック）で Cost Explorer の actual-lite を利用できます。
 
 ## 概要
 
@@ -16,7 +16,7 @@ Amazon Bedrock の使用量と利用料金をターミナルから確認する C
 - 請求反映前の「今日」を概算で見たい（`bdusage today --source logs`）
 - 管理者が全 principal のランキングを見る（`--all`、v0.1 から help に明記）
 
-**最重要方針**: 実請求（actual）と概算（estimate）を混ぜません。出力には常に `source: CUR 2.0 actual` や `source: CloudWatch Logs estimate` のように表示します。
+**最重要方針**: 実請求（actual）と概算（estimate）を混ぜません。出力には常に `source:` を表示し、CUR actual では `engine:`（DuckDB / Athena）も表示します。
 
 ## クイックスタート
 
@@ -50,7 +50,7 @@ npx bdusage today --source logs
 | `monthly` | 月次の利用料金 | ✅ |
 | `models` | モデル別の使用量・コスト | ✅ |
 | `whoami` | 現在の AWS 認証と principal 解決結果 | ✅ |
-| `doctor` | 設定・権限・CUR・Athena の診断 | ✅ |
+| `doctor` | 設定・権限・CUR（DuckDB / Athena）・CE・Logs の診断 | ✅ |
 | `users --all` | principal / tag 別ランキング（管理者向け） | 計画 |
 | `cache` | prompt cache read/write の内訳 | 計画 |
 | `today --source logs` | 今日の概算（CloudWatch Logs） | ✅ |
@@ -173,8 +173,9 @@ npx bdusage doctor
 ### summary
 
 ```text
-bdusage v0.1.0
+bdusage v0.3.1
 source: CUR 2.0 actual
+engine: DuckDB direct Parquet
 profile: default
 principal: arn:aws:sts::123456789012:assumed-role/BedrockDeveloper/alice@example.com
 period: 2026-06-01..2026-06-02

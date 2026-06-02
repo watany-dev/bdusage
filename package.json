@@ -44,6 +44,7 @@
     "cli",
     "cur",
     "athena",
+    "duckdb",
     "usage"
   ],
   "license": "MIT",

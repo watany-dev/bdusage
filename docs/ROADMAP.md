@@ -86,18 +86,19 @@
 
 ---
 
-### v0.3.1 — CUR DuckDB engine
+### v0.3.1 — CUR DuckDB engine（リリース済み・一部未実装あり）
 
-**目的**: Athena query cost を避け、CUR 2.0 Parquet を DuckDB で直接読む。ユーザー向けには `init` / `doctor` / `auto` で設定負荷を吸収し、内部実装は Athena と DuckDB を別 backend として分離する。
+**目的**: Athena query cost を避け、CUR 2.0 Parquet を DuckDB で直接読む。内部実装は Athena と DuckDB を別 backend として分離する。
 
-| 機能 | 内容 |
-|------|------|
-| `--cur-engine duckdb` | CUR Parquet を DuckDB で直接読む |
-| `--cur-engine athena` | 既存 Athena backend を明示使用 |
-| `--cur-engine auto` | DuckDB → Athena の順に probe |
-| `bdusage init` | CUR export / S3 prefix / backend を検出して config 作成 |
-| `doctor` | source / engine 別診断 |
-| config migration | 旧 `[athena]` を `[cur.athena]` へ互換読み込み |
+| 機能 | 内容 | 状態 |
+|------|------|------|
+| `--cur-engine duckdb` | CUR Parquet を DuckDB で直接読む | ✅ |
+| `--cur-engine athena` | 既存 Athena backend を明示使用 | ✅ |
+| `--cur-engine auto` | DuckDB → Athena の順に probe | ✅ |
+| `doctor` | DuckDB / Athena 各チェック（フラット出力） | ✅ |
+| config migration | 旧 `[athena]` を `[cur.athena]` へ互換読み込み | ✅ |
+| `bdusage init` | CUR export / S3 prefix / backend を検出して config 作成 | 未実装（v0.5+ 候補） |
+| `doctor --fix` | 安全な config 補完のみ | 未実装 |
 
 表示例:
 
@@ -112,8 +113,8 @@ engine: DuckDB direct Parquet
 2. Athena 設定なしでも DuckDB backend が動作する
 3. 旧 `[athena]` config は互換読み込みされる
 4. レポートヘッダに `source: CUR 2.0 actual` と `engine: DuckDB direct Parquet` を表示する
-5. `doctor` が DuckDB package, httpfs, S3 credentials, files glob, required columns, `line_item_iam_principal` を診断する
-6. 同一 fixture Parquet に対して DuckDB と Athena query の集計結果が一致する
+5. `doctor` が DuckDB（files, httpfs, sample query, required columns, iam principal）と Athena チェックを診断する
+6. fixture Parquet に対する DuckDB 集計の単体テストがある（Athena との同一 fixture 比較テストは未実装）
 7. `--source cur --cur-engine duckdb` 失敗時に Athena / CE へ暗黙 fallback しない
 8. `--source cur --cur-engine auto` は DuckDB → Athena のみを試し、CE には fallback しない
 
@@ -187,7 +188,7 @@ v0.2 Cost Explorer        ← リリース済み（CUR 未設定環境の fallba
     ↓
 v0.3 Logs estimate        ← リリース済み（today / 速報）
     ↓
-v0.3.1 CUR DuckDB engine  ← Athena cost を避ける direct Parquet backend
+v0.3.1 CUR DuckDB engine  ← リリース済み（init / doctor --fix は未実装）
     ↓
 v0.4 Managed mode         ← 組織内の厳密な principal スコープ
     ↓
