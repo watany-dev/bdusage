@@ -18,10 +18,10 @@ export async function runUsers(ctx: CommandContext): Promise<string> {
   const until = parseUntil(ctx.options.until);
   const range = { since, until };
 
-  const [rows, freshness] = await Promise.all([
-    billing.fetchUsers(range),
-    billing.fetchBillingFreshness({ kind: "all" }),
-  ]);
+  const rows = await billing.fetchUsers(range);
+  const freshness =
+    billing.peekBillingFreshness?.() ??
+    (await billing.fetchBillingFreshness({ kind: "all" }, range));
 
   const meta = buildReportMeta(ctx, principal, range, freshness);
   const envelope = { meta, rows };

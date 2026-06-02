@@ -13,6 +13,11 @@ import type {
 import type { DateRange } from "../../util/dates.js";
 import type { CurBillingSource } from "../billing-source.js";
 import {
+  athenaRowsToRawWithoutLatest,
+  type BillingFreshness,
+  parseBillingFreshnessFromRows,
+} from "../cur/freshness.js";
+import {
   athenaRowsToRaw,
   mapRawDailyRows,
   mapRawModelRows,
@@ -33,52 +38,67 @@ export class CurAthenaSource implements CurBillingSource {
   readonly resolved = "cur" as const;
   readonly curEngine: ResolvedCurEngine = "athena";
 
+  private lastFreshness: BillingFreshness | null = null;
+
   constructor(
     private readonly executor: AthenaExecutor,
     private readonly config: BdusageConfig,
   ) {}
 
+  peekBillingFreshness(): BillingFreshness | null {
+    return this.lastFreshness;
+  }
+
   async fetchDaily(principal: PrincipalFilter, range: DateRange): Promise<DailyRow[]> {
     const sql = dailyQuery(this.config, principal, range);
-    const rows = await this.run(sql);
-    return mapRawDailyRows(athenaRowsToRaw(rows));
+    return this.fetchMapped(sql, mapRawDailyRows);
   }
 
   async fetchWeekly(principal: PrincipalFilter, range: DateRange): Promise<WeeklyRow[]> {
     const sql = weeklyQuery(this.config, principal, range);
-    const rows = await this.run(sql);
-    return mapRawWeeklyRows(athenaRowsToRaw(rows));
+    return this.fetchMapped(sql, mapRawWeeklyRows);
   }
 
   async fetchMonthly(principal: PrincipalFilter, range: DateRange): Promise<MonthlyRow[]> {
     const sql = monthlyQuery(this.config, principal, range);
-    const rows = await this.run(sql);
-    return mapRawMonthlyRows(athenaRowsToRaw(rows));
+    return this.fetchMapped(sql, mapRawMonthlyRows);
   }
 
   async fetchUsers(range: DateRange): Promise<UserRow[]> {
     const sql = usersByPrincipalQuery(this.config, range);
-    const rows = await this.run(sql);
-    return mapRawUserRows(athenaRowsToRaw(rows));
+    return this.fetchMapped(sql, mapRawUserRows);
   }
 
   async fetchModels(principal: PrincipalFilter, range: DateRange): Promise<ModelRow[]> {
     const sql = modelsQuery(this.config, principal, range);
-    const rows = await this.run(sql);
-    return mapRawModelRows(athenaRowsToRaw(rows));
+    return this.fetchMapped(sql, mapRawModelRows);
   }
 
-  async fetchBillingFreshness(principal: PrincipalFilter): Promise<{
+  async fetchBillingFreshness(
+    principal: PrincipalFilter,
+    range?: DateRange,
+  ): Promise<{
     status: BillingDataStatus;
     latest: string | null;
   }> {
-    const sql = billingFreshnessQuery(this.config, principal);
-    const rows = await this.run(sql);
-    const latest = rows[0]?.["latest_usage"] ?? null;
-    if (!latest) {
+    if (this.lastFreshness && !range) {
+      return this.lastFreshness;
+    }
+    if (!range) {
       return { status: "unknown", latest: null };
     }
-    return { status: "partial", latest };
+    const sql = billingFreshnessQuery(this.config, principal, range);
+    const rows = await this.run(sql);
+    return parseBillingFreshnessFromRows(rows);
+  }
+
+  private async fetchMapped<TRow>(
+    sql: string,
+    mapFn: (raw: ReturnType<typeof athenaRowsToRaw>) => TRow[],
+  ): Promise<TRow[]> {
+    const rows = await this.run(sql);
+    this.lastFreshness = parseBillingFreshnessFromRows(rows);
+    return mapFn(athenaRowsToRaw(athenaRowsToRawWithoutLatest(rows)));
   }
 
   private async run(sql: string): Promise<Array<Record<string, string | null>>> {

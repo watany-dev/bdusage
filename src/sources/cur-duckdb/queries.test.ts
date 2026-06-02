@@ -34,8 +34,10 @@ describe("cur-duckdb queries", () => {
   it("matches Athena aggregation shape for the same inputs", () => {
     const duck = dailyQuery(DEFAULT_CONFIG, principal, range);
     const athena = athenaDailyQuery(DEFAULT_CONFIG, principal, range);
-    expect(duck).toContain("SUM(line_item_unblended_cost) AS cost");
-    expect(athena).toContain("SUM(line_item_unblended_cost) AS cost");
+    expect(duck).toContain("SUM(cost_col) AS cost");
+    expect(athena).toContain("SUM(cost_col) AS cost");
+    expect(duck).toContain("WITH filtered AS");
+    expect(athena).toContain("WITH filtered AS");
     expect(duck).toContain("line_item_usage_type AS usage_type");
     expect(athena).toContain("line_item_usage_type AS usage_type");
   });

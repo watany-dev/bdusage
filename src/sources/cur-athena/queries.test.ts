@@ -9,6 +9,7 @@ describe("weeklyQuery", () => {
       { kind: "all" },
       { since: "2026-06-01", until: "2026-07-01" },
     );
+    expect(sql).toContain("WITH filtered AS");
     expect(sql).toContain("week_start");
     expect(sql).toContain("day_of_week");
   });

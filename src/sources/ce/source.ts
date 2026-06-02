@@ -67,7 +67,10 @@ export class CeSource implements BillingSource {
     return mapRawModelRows(raw);
   }
 
-  async fetchBillingFreshness(_principal: PrincipalFilter): Promise<{
+  async fetchBillingFreshness(
+    _principal: PrincipalFilter,
+    _range?: DateRange,
+  ): Promise<{
     status: BillingDataStatus;
     latest: string | null;
   }> {

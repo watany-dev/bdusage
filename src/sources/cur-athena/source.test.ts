@@ -39,18 +39,14 @@ describe("CurAthenaSource", () => {
       { usage_type: "T", cost: "1", usage_amount: "1" },
     ]);
     await source.fetchModels(principal, range);
-    vi.mocked(executor.executeQuery).mockResolvedValueOnce([
-      { latest_usage: "2026-06-01 00:00:00.000" },
-    ]);
-    vi.mocked(executor.executeQuery).mockReset();
     vi.mocked(executor.executeQuery).mockResolvedValueOnce([{}]);
-    const emptyBilling = await source.fetchBillingFreshness(principal);
+    const emptyBilling = await source.fetchBillingFreshness(principal, range);
     expect(emptyBilling.status).toBe("unknown");
 
     vi.mocked(executor.executeQuery).mockResolvedValueOnce([
       { latest_usage: "2026-06-01 00:00:00.000" },
     ]);
-    const billing = await source.fetchBillingFreshness(principal);
+    const billing = await source.fetchBillingFreshness(principal, range);
     expect(billing.latest).toBe("2026-06-01 00:00:00.000");
     expect(executor.executeQuery).toHaveBeenCalled();
   });

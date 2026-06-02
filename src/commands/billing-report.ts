@@ -22,10 +22,9 @@ export async function runBillingReport<TRow>(
   const billing = await ctx.createBillingSource();
   const principal = await resolvePrincipalForBilling(ctx, billing);
 
-  const [rows, freshness] = await Promise.all([
-    fetchRows(billing, principal, range),
-    billing.fetchBillingFreshness(principal),
-  ]);
+  const rows = await fetchRows(billing, principal, range);
+  const freshness =
+    billing.peekBillingFreshness?.() ?? (await billing.fetchBillingFreshness(principal, range));
 
   const meta = buildReportMeta(ctx, principal, range, freshness);
   const envelope = { meta, rows };
