@@ -3,9 +3,9 @@
 Amazon Bedrock の使用量と利用料金をターミナルから確認する CLI。体験は [`ccusage`](https://ccusage.com/guide/) に近く、AWS の課金データ（実請求）と監視データ（概算）を分けて表示します。
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-v0.1-green)
+![Status](https://img.shields.io/badge/status-v0.2-green)
 
-> **注意**: v0.1 は CUR 2.0 + Athena が設定された AWS 環境が必要です。`--source` は `cur` / `auto` のみ（Cost Explorer / Logs は v0.2 以降）。
+> **注意**: IAM principal 単位の正確な実コストには CUR 2.0 + Athena が必要です。CUR 未設定時は `--source ce` または `--source auto`（cur → ce フォールバック）で Cost Explorer の actual-lite を利用できます。
 
 ## 概要
 
@@ -61,7 +61,7 @@ npx bdusage doctor
 --principal self              # 自分の caller identity のみ（デフォルト）
 --principal <arn>             # 指定 IAM principal ARN
 --principal-role <role-arn>   # assumed role を role 単位で集計
---principal-tag <key=value>   # principal tag で絞り込み（v0.2+）
+--principal-tag <key=value>   # cost allocation tag で絞り込み（--source ce）
 --principal-from-profile <p>  # 別 profile の GetCallerIdentity を対象 principal に
 --all                         # 全 principal（管理者向け・権限に依存）
 --since <date|duration>       # 例: 7d, 2026-05-01
@@ -89,6 +89,9 @@ npx bdusage daily --principal-role arn:aws:iam::123456789012:role/BedrockDevelop
 # JSON 出力（自動化向け）
 npx bdusage daily --since 30d --json
 
+# CUR 未設定時: Cost Explorer + cost allocation tag
+npx bdusage daily --source ce --principal-tag user=alice --all
+
 # 管理者: 全 principal（help に記載のとおり権限が必要）
 npx bdusage users --all --since 30d
 ```
@@ -98,15 +101,17 @@ npx bdusage users --all --since 30d
 | source | 表示 | 用途 |
 |--------|------|------|
 | `cur` | actual | IAM principal 別の正確な実コスト（CUR 2.0 + Athena） |
-| `ce` | actual-lite | CUR 未設定時の fallback（v0.2） |
+| `ce` | actual-lite | CUR 未設定時の fallback（Cost Explorer API） |
 | `logs` | estimate | 今日・直近の速報（v0.3） |
 | `metrics` | estimate/volume | モデル別全体傾向（principal 別不可） |
 
 金額系レポートのデフォルト優先順位: **cur → ce → 失敗時は `doctor` を案内**。
 
-## 前提条件（v0.1）
+## 前提条件
 
-実コスト（IAM principal 単位）には **CUR 2.0** が必要です。
+### CUR（`--source cur` / `--source auto` の第一選択）
+
+IAM principal 単位の実コストには **CUR 2.0** が必要です。
 
 1. AWS Data Exports / CUR 2.0 を有効化（`INCLUDE_IAM_PRINCIPAL_DATA=true` 推奨）
 2. Athena で CUR テーブルをクエリ可能にする
@@ -198,7 +203,7 @@ bun run build
 | バージョン | 内容 |
 |------------|------|
 | **v0.1** | CUR actual MVP — summary / daily / monthly / models / whoami / doctor |
-| v0.2 | Cost Explorer fallback、`--source ce` |
+| **v0.2** | Cost Explorer fallback、`--source ce`、`--principal-tag` |
 | v0.3 | CloudWatch Logs estimate、`today` |
 | v0.4 | Managed mode（サーバー側 principal スコープ） |
 | v0.5+ | anomaly, budget, CI/Slack 連携 |

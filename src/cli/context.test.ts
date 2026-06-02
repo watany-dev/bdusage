@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfigError } from "../config/load.js";
-import { buildCommandContext, mapCliError } from "./context.js";
+import { buildCommandContext, mapCliError, resolvePrincipalForBilling } from "./context.js";
 
 vi.mock("../config/load.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config/load.js")>();
@@ -26,6 +26,24 @@ vi.mock("../aws/sts.js", () => ({
     arn: "arn:aws:sts::123:assumed-role/R/u",
     userId: "A",
   }),
+}));
+
+vi.mock("../aws/athena.js", () => ({
+  createAthenaClient: vi.fn(),
+  LiveAthenaExecutor: class {
+    async executeQuery() {
+      return [{ line_item_usage_type: "X" }];
+    }
+  },
+}));
+
+vi.mock("../aws/cost-explorer.js", () => ({
+  createCostExplorerClient: vi.fn(),
+  LiveCostExplorerClient: class {
+    async getCostAndUsage() {
+      return [];
+    }
+  },
 }));
 
 describe("buildCommandContext", () => {
@@ -63,6 +81,38 @@ describe("buildCommandContext", () => {
     const ctx = await buildCommandContext({ source: "cur" });
     expect(ctx.createCurSource()).toBeDefined();
   });
+
+  it("resolves principal tag and role", async () => {
+    const tagCtx = await buildCommandContext({
+      source: "ce",
+      principalTag: "user=alice",
+    });
+    expect((await tagCtx.resolvePrincipal()).kind).toBe("tag");
+
+    const roleCtx = await buildCommandContext({
+      source: "cur",
+      principalRole: "arn:aws:iam::1:role/R",
+    });
+    expect((await roleCtx.resolvePrincipal()).kind).toBe("role");
+  });
+
+  it("createBillingSource resolves cur and ce", async () => {
+    const curCtx = await buildCommandContext({ source: "cur" });
+    const curBilling = await curCtx.createBillingSource();
+    expect(curBilling.resolved).toBe("cur");
+
+    const ceCtx = await buildCommandContext({ source: "ce" });
+    const ceBilling = await ceCtx.createBillingSource();
+    expect(ceBilling.resolved).toBe("ce");
+  });
+});
+
+describe("resolvePrincipalForBilling", () => {
+  it("rejects tag principal for cur billing", async () => {
+    const ctx = await buildCommandContext({ source: "cur", principalTag: "user=alice" });
+    const billing = { resolved: "cur" as const };
+    await expect(resolvePrincipalForBilling(ctx, billing)).rejects.toThrow("principal-tag");
+  });
 });
 
 describe("mapCliError", () => {
@@ -74,6 +124,10 @@ describe("mapCliError", () => {
     expect(mapCliError(new Error("Athena query failed")).message).toContain("Athena");
     expect(mapCliError(new Error("line_item_iam_principal missing")).message).toContain("doctor");
     expect(mapCliError(new Error("AccessDeniedException")).message).toContain("Access denied");
+    expect(mapCliError(new Error("Cost Explorer cannot filter")).message).toContain(
+      "Cost Explorer",
+    );
+    expect(mapCliError(new Error("--principal-tag is only supported")).exitCode).toBe(1);
     expect(mapCliError("x").message).toBe("x");
   });
 });

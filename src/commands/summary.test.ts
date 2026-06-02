@@ -5,7 +5,8 @@ import { runSummary } from "./summary.js";
 
 describe("runSummary", () => {
   it("renders summary table and json", async () => {
-    const source = {
+    const billing = {
+      resolved: "cur" as const,
       fetchMonthly: vi.fn().mockResolvedValue([
         {
           month: "2026-06",
@@ -38,7 +39,9 @@ describe("runSummary", () => {
       configPath: "/tmp/c.toml",
       config: DEFAULT_CONFIG,
       options: { source: "cur" as const },
-      createCurSource: () => source as ReturnType<CommandContext["createCurSource"]>,
+      resolvedSource: "cur" as const,
+      createCurSource: vi.fn(),
+      createBillingSource: vi.fn().mockResolvedValue(billing),
       resolvePrincipal: vi.fn().mockResolvedValue({ kind: "self", arn: "arn:1" }),
     };
 

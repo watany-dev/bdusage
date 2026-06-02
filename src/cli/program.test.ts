@@ -12,14 +12,14 @@ describe("createProgram", () => {
 });
 
 describe("normalizeSource", () => {
-  it("accepts cur and auto", () => {
+  it("accepts cur, ce, and auto", () => {
     expect(normalizeSource("cur")).toBe("cur");
+    expect(normalizeSource("ce")).toBe("ce");
     expect(normalizeSource("auto")).toBe("auto");
   });
 
   it("rejects later-phase sources", () => {
-    expect(() => normalizeSource("logs")).toThrow("not available in v0.1");
-    expect(() => normalizeSource("ce")).toThrow("not available in v0.1");
+    expect(() => normalizeSource("logs")).toThrow("not available yet");
   });
 
   it("rejects unknown sources", () => {

@@ -2,6 +2,7 @@ import type { AthenaExecutor } from "../../aws/athena.js";
 import type { BdusageConfig } from "../../config/schema.js";
 import type { PrincipalFilter } from "../../types/principal.js";
 import type { BillingDataStatus, DailyRow, ModelRow, MonthlyRow } from "../../types/report.js";
+import type { BillingSource } from "../billing-source.js";
 import {
   athenaRowsToRaw,
   mapRawDailyRows,
@@ -16,7 +17,8 @@ import {
   monthlyQuery,
 } from "./queries.js";
 
-export class CurSource {
+export class CurSource implements BillingSource {
+  readonly resolved = "cur" as const;
   constructor(
     private readonly executor: AthenaExecutor,
     private readonly config: BdusageConfig,

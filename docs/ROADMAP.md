@@ -38,16 +38,27 @@
 
 ---
 
-### v0.2 — Cost Explorer fallback
+### v0.2 — Cost Explorer fallback（リリース済み）
+
+**目的**: CUR 未設定環境でも Bedrock 実コスト（actual-lite）を Cost Explorer から確認する。
 
 | 機能 | 内容 |
 |------|------|
 | `--source ce` | Cost Explorer actual-lite |
-| principal tag | `--principal-tag` フィルタ |
+| `--source auto` | cur 試行 → 失敗時 ce → 両方失敗時 doctor 案内 |
+| principal tag | `--principal-tag <key=value>` フィルタ |
 | 集計 | `USAGE_TYPE` グループ |
-| doctor | cost allocation tag 診断追加 |
+| doctor | Cost Explorer アクセス・tag 利用の診断 |
 
 表示例: `source: Cost Explorer actual-lite`
+
+**受け入れ条件**:
+
+1. `--source ce --principal-tag user=alice --all` 相当で Bedrock コストが取得できる（要 AWS 環境）
+2. `--source auto` で CUR 不可時に CE にフォールバックする
+3. CE では IAM principal ARN フィルタを試みず、明示エラーで `--principal-tag` を案内
+4. レポートヘッダに `source: Cost Explorer actual-lite` を表示（actual と estimate を混在しない）
+5. `doctor` が Cost Explorer と tag フィルタの案内を出す
 
 ---
 
@@ -110,9 +121,9 @@ bdusage/
 ## 優先順位
 
 ```
-v0.1 CUR actual MVP     ← 現在（本リポジトリの初期実装）
+v0.1 CUR actual MVP     ← リリース済み
     ↓
-v0.2 Cost Explorer      ← CUR 未設定環境の fallback
+v0.2 Cost Explorer      ← リリース済み（CUR 未設定環境の fallback）
     ↓
 v0.3 Logs estimate      ← today / 速報
     ↓

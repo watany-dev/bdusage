@@ -1,22 +1,28 @@
 import type { AthenaExecutor } from "../aws/athena.js";
 import { createAthenaClient, LiveAthenaExecutor } from "../aws/athena.js";
+import { createCostExplorerClient, LiveCostExplorerClient } from "../aws/cost-explorer.js";
 import { getCallerIdentity } from "../aws/sts.js";
 import { ConfigError, loadConfigFile } from "../config/load.js";
 import { defaultConfigPath } from "../config/paths.js";
 import type { BdusageConfig } from "../config/schema.js";
+import type { BillingSource } from "../sources/billing-source.js";
+import { CeSource } from "../sources/ce/source.js";
 import { CurSource } from "../sources/cur/source.js";
+import { resolveBillingSource } from "../sources/resolve.js";
 import type { PrincipalFilter } from "../types/principal.js";
+import { assertCurPrincipalFilter, parsePrincipalTag } from "../types/principal.js";
 import type { OutputFormat } from "../types/report.js";
-import type { V01SourceName } from "../types/source.js";
-import { isV01Source } from "../types/source.js";
+import type { ResolvedSourceName, SourceName } from "../types/source.js";
+import { isSourceName } from "../types/source.js";
 import { VERSION } from "../version.js";
 
 export interface GlobalOptions {
   profile?: string | undefined;
   region?: string | undefined;
-  source: V01SourceName;
+  source: SourceName;
   principalArn?: string | undefined;
   principalRole?: string | undefined;
+  principalTag?: string | undefined;
   principalFromProfile?: string | undefined;
   allPrincipals?: boolean | undefined;
   since?: string | undefined;
@@ -32,7 +38,9 @@ export interface CommandContext {
   options: GlobalOptions;
   outputFormat: OutputFormat;
   version: string;
+  resolvedSource?: ResolvedSourceName;
   createCurSource(): CurSource;
+  createBillingSource(): Promise<BillingSource>;
   resolvePrincipal(): Promise<PrincipalFilter>;
 }
 
@@ -54,8 +62,8 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
   };
 
   const source = options.source;
-  if (!isV01Source(source)) {
-    throw new Error(`Unsupported source in v0.1: ${source}`);
+  if (!isSourceName(source)) {
+    throw new Error(`Unsupported source: ${source}`);
   }
 
   let outputFormat: OutputFormat = config.output.default_format;
@@ -65,7 +73,7 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
     outputFormat = "csv";
   }
 
-  return {
+  const ctx: CommandContext = {
     config,
     configPath,
     options: { ...options, source },
@@ -76,7 +84,29 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
       const executor: AthenaExecutor = new LiveAthenaExecutor(client);
       return new CurSource(executor, config);
     },
+    async createBillingSource() {
+      const client = createAthenaClient(region, profile);
+      const executor: AthenaExecutor = new LiveAthenaExecutor(client);
+      const cur = new CurSource(executor, config);
+      const ce = new CeSource(
+        new LiveCostExplorerClient(createCostExplorerClient(region, profile)),
+        config,
+      );
+      const billing = await resolveBillingSource(
+        source,
+        () => cur,
+        () => ce,
+        config,
+        executor,
+      );
+      ctx.resolvedSource = billing.resolved;
+      return billing;
+    },
     async resolvePrincipal() {
+      if (options.principalTag) {
+        const tag = parsePrincipalTag(options.principalTag);
+        return { kind: "tag", key: tag.key, value: tag.value };
+      }
       if (options.allPrincipals) {
         return { kind: "all" };
       }
@@ -91,6 +121,19 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
       return { kind: "self", arn: identity.arn };
     },
   };
+
+  return ctx;
+}
+
+export async function resolvePrincipalForBilling(
+  ctx: CommandContext,
+  billing: BillingSource,
+): Promise<PrincipalFilter> {
+  const principal = await ctx.resolvePrincipal();
+  if (billing.resolved === "cur") {
+    assertCurPrincipalFilter(principal);
+  }
+  return principal;
 }
 
 export function mapCliError(error: unknown): { message: string; exitCode: number } {
@@ -122,6 +165,9 @@ export function mapCliError(error: unknown): { message: string; exitCode: number
         message: `Athena query failed: ${msg}. Run bdusage doctor.`,
         exitCode: 1,
       };
+    }
+    if (msg.includes("Cost Explorer") || msg.includes("principal-tag")) {
+      return { message: msg, exitCode: 1 };
     }
     return { message: msg, exitCode: 1 };
   }

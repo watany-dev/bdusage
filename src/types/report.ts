@@ -1,5 +1,5 @@
 import type { PrincipalFilter } from "./principal.js";
-import type { V01SourceName } from "./source.js";
+import type { ResolvedSourceName } from "./source.js";
 
 export type CostMetric = "unblended" | "net_unblended";
 
@@ -9,7 +9,7 @@ export type BillingDataStatus = "complete" | "partial" | "unknown";
 
 export interface ReportMeta {
   version: string;
-  source: V01SourceName;
+  source: ResolvedSourceName;
   sourceLabel: string;
   profile: string;
   region: string;

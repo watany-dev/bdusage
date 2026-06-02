@@ -20,6 +20,19 @@ vi.mock("../aws/sts.js", () => ({
   getCallerIdentity: vi.fn(),
 }));
 
+vi.mock("../aws/cost-explorer.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../aws/cost-explorer.js")>();
+  return {
+    ...actual,
+    createCostExplorerClient: vi.fn(),
+    LiveCostExplorerClient: class {
+      async getCostAndUsage() {
+        return [];
+      }
+    },
+  };
+});
+
 describe("runDoctorChecks", () => {
   it("reports ok when principal column has data", async () => {
     const { getCallerIdentity } = await import("../aws/sts.js");
@@ -100,5 +113,13 @@ describe("runDoctorChecks", () => {
       executeQuery: vi.fn().mockRejectedValue(new Error("AccessDenied")),
     });
     expect(checks.find((c) => c.name === "sample_bedrock_query")?.status).toBe("fail");
+  });
+
+  it("includes Cost Explorer tag guidance", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", null);
+    expect(checks.find((c) => c.name === "ce_principal_tag")?.message).toContain("--principal-tag");
   });
 });

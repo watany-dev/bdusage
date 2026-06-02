@@ -1,16 +1,19 @@
-export const V01_SOURCES = ["cur", "auto"] as const;
+export const SOURCE_NAMES = ["cur", "ce", "auto"] as const;
 
-export type V01SourceName = (typeof V01_SOURCES)[number];
+export type SourceName = (typeof SOURCE_NAMES)[number];
 
-const SOURCE_LABELS: Record<V01SourceName, string> = {
+/** Source that actually produced the report (auto resolves to cur or ce). */
+export type ResolvedSourceName = "cur" | "ce";
+
+const SOURCE_LABELS: Record<ResolvedSourceName, string> = {
   cur: "CUR 2.0 actual",
-  auto: "CUR 2.0 actual",
+  ce: "Cost Explorer actual-lite",
 };
 
-export function resolveSourceLabel(source: V01SourceName): string {
+export function resolveSourceLabel(source: ResolvedSourceName): string {
   return SOURCE_LABELS[source];
 }
 
-export function isV01Source(value: string): value is V01SourceName {
-  return (V01_SOURCES as readonly string[]).includes(value);
+export function isSourceName(value: string): value is SourceName {
+  return (SOURCE_NAMES as readonly string[]).includes(value);
 }

@@ -14,9 +14,10 @@ function attachGlobalOptions(cmd: Command): Command {
   return cmd
     .option("--profile <name>", "AWS profile for API calls")
     .option("--region <region>", "AWS region for API calls")
-    .option("--source <name>", "Data source (v0.1: cur|auto)", "auto")
+    .option("--source <name>", "Data source (cur|ce|auto)", "auto")
     .option("--principal <arn>", "Filter by IAM principal ARN")
     .option("--principal-role <roleArn>", "Aggregate assumed-role sessions by role ARN")
+    .option("--principal-tag <key=value>", "Filter by cost allocation tag (--source ce)")
     .option(
       "--principal-from-profile <name>",
       "Resolve principal from another profile (GetCallerIdentity only)",
@@ -36,6 +37,7 @@ function readGlobalOptions(cmd: Command): GlobalOptions {
     source?: string;
     principal?: string;
     principalRole?: string;
+    principalTag?: string;
     principalFromProfile?: string;
     all?: boolean;
     since?: string;
@@ -56,6 +58,7 @@ function readGlobalOptions(cmd: Command): GlobalOptions {
   if (opts.region) base.region = opts.region;
   if (opts.principal) base.principalArn = opts.principal;
   if (opts.principalRole) base.principalRole = opts.principalRole;
+  if (opts.principalTag) base.principalTag = opts.principalTag;
   if (opts.principalFromProfile) base.principalFromProfile = opts.principalFromProfile;
   if (opts.since) base.since = opts.since;
   if (opts.until) base.until = opts.until;
@@ -65,12 +68,12 @@ function readGlobalOptions(cmd: Command): GlobalOptions {
 }
 
 export function normalizeSource(value: string): GlobalOptions["source"] {
-  if (value === "auto" || value === "cur") {
+  if (value === "auto" || value === "cur" || value === "ce") {
     return value;
   }
-  if (value === "ce" || value === "logs" || value === "metrics") {
+  if (value === "logs" || value === "metrics") {
     throw new Error(
-      `Source "${value}" is not available in v0.1. Use --source cur or see docs/ROADMAP.md.`,
+      `Source "${value}" is not available yet. Use --source cur|ce|auto or see docs/ROADMAP.md.`,
     );
   }
   throw new Error(`Unknown --source: ${value}`);
