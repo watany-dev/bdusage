@@ -3,10 +3,13 @@ import { buildCeTimePeriod, ceMetricName, parseCeGroups } from "../../aws/cost-e
 import type { BdusageConfig } from "../../config/schema.js";
 import type { PrincipalFilter } from "../../types/principal.js";
 import type { BillingDataStatus, DailyRow, ModelRow, MonthlyRow } from "../../types/report.js";
-import { type DateRange, todayUtc } from "../../util/dates.js";
+import { addDays, type DateRange, todayUtc } from "../../util/dates.js";
 import type { BillingSource } from "../billing-source.js";
 import { mapRawDailyRows, mapRawModelRows, mapRawMonthlyRows } from "../cur/aggregate.js";
 import { buildCeFilter } from "./filters.js";
+
+type CeGranularity = "DAILY" | "MONTHLY";
+type CeDateKey = "usage_date" | "usage_month";
 
 export class CeSource implements BillingSource {
   readonly resolved = "ce" as const;
@@ -17,47 +20,17 @@ export class CeSource implements BillingSource {
   ) {}
 
   async fetchDaily(principal: PrincipalFilter, range: DateRange): Promise<DailyRow[]> {
-    const results = await this.client.getCostAndUsage({
-      TimePeriod: buildCeTimePeriod(range),
-      Granularity: "DAILY",
-      Metrics: [ceMetricName(this.config.cost.metric), "UsageQuantity"],
-      Filter: buildCeFilter(principal),
-      GroupBy: [{ Type: "DIMENSION", Key: "USAGE_TYPE" }],
-    });
-    const raw = parseCeGroups(results, {
-      dateKey: "usage_date",
-      metric: this.config.cost.metric,
-    });
+    const raw = await this.fetchGroupedUsage(principal, range, "DAILY", "usage_date");
     return mapRawDailyRows(raw);
   }
 
   async fetchMonthly(principal: PrincipalFilter, range: DateRange): Promise<MonthlyRow[]> {
-    const results = await this.client.getCostAndUsage({
-      TimePeriod: buildCeTimePeriod(range),
-      Granularity: "MONTHLY",
-      Metrics: [ceMetricName(this.config.cost.metric), "UsageQuantity"],
-      Filter: buildCeFilter(principal),
-      GroupBy: [{ Type: "DIMENSION", Key: "USAGE_TYPE" }],
-    });
-    const raw = parseCeGroups(results, {
-      dateKey: "usage_month",
-      metric: this.config.cost.metric,
-    });
+    const raw = await this.fetchGroupedUsage(principal, range, "MONTHLY", "usage_month");
     return mapRawMonthlyRows(raw);
   }
 
   async fetchModels(principal: PrincipalFilter, range: DateRange): Promise<ModelRow[]> {
-    const results = await this.client.getCostAndUsage({
-      TimePeriod: buildCeTimePeriod(range),
-      Granularity: "MONTHLY",
-      Metrics: [ceMetricName(this.config.cost.metric), "UsageQuantity"],
-      Filter: buildCeFilter(principal),
-      GroupBy: [{ Type: "DIMENSION", Key: "USAGE_TYPE" }],
-    });
-    const raw = parseCeGroups(results, {
-      dateKey: "usage_month",
-      metric: this.config.cost.metric,
-    });
+    const raw = await this.fetchGroupedUsage(principal, range, "MONTHLY", "usage_month");
     return mapRawModelRows(raw);
   }
 
@@ -70,14 +43,31 @@ export class CeSource implements BillingSource {
 
   async probe(): Promise<void> {
     const end = todayUtc();
-    const startDate = new Date(`${end}T00:00:00Z`);
-    startDate.setUTCDate(startDate.getUTCDate() - 1);
-    const start = startDate.toISOString().slice(0, 10);
+    const start = addDays(end, -1);
     await this.client.getCostAndUsage({
       TimePeriod: buildCeTimePeriod({ since: start, until: end }),
       Granularity: "MONTHLY",
       Metrics: [ceMetricName(this.config.cost.metric)],
       Filter: buildCeFilter({ kind: "all" }),
+    });
+  }
+
+  private async fetchGroupedUsage(
+    principal: PrincipalFilter,
+    range: DateRange,
+    granularity: CeGranularity,
+    dateKey: CeDateKey,
+  ) {
+    const results = await this.client.getCostAndUsage({
+      TimePeriod: buildCeTimePeriod(range),
+      Granularity: granularity,
+      Metrics: [ceMetricName(this.config.cost.metric), "UsageQuantity"],
+      Filter: buildCeFilter(principal),
+      GroupBy: [{ Type: "DIMENSION", Key: "USAGE_TYPE" }],
+    });
+    return parseCeGroups(results, {
+      dateKey,
+      metric: this.config.cost.metric,
     });
   }
 }

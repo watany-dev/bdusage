@@ -2,6 +2,7 @@ import type { AthenaExecutor } from "../../aws/athena.js";
 import type { BdusageConfig } from "../../config/schema.js";
 import type { PrincipalFilter } from "../../types/principal.js";
 import type { BillingDataStatus, DailyRow, ModelRow, MonthlyRow } from "../../types/report.js";
+import type { DateRange } from "../../util/dates.js";
 import type { BillingSource } from "../billing-source.js";
 import {
   athenaRowsToRaw,
@@ -9,13 +10,7 @@ import {
   mapRawModelRows,
   mapRawMonthlyRows,
 } from "./aggregate.js";
-import {
-  billingFreshnessQuery,
-  type DateRange,
-  dailyQuery,
-  modelsQuery,
-  monthlyQuery,
-} from "./queries.js";
+import { billingFreshnessQuery, dailyQuery, modelsQuery, monthlyQuery } from "./queries.js";
 
 export class CurSource implements BillingSource {
   readonly resolved = "cur" as const;

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { monthStart, parseSince, parseUntil } from "./dates.js";
+import {
+  billingRangeFromMonthStart,
+  billingRangeWithFallbackDays,
+  monthStart,
+  parseSince,
+  parseUntil,
+} from "./dates.js";
 
 describe("parseSince", () => {
   it("parses Nd durations", () => {
@@ -38,5 +44,24 @@ describe("parseUntil", () => {
 describe("monthStart", () => {
   it("returns first day of month", () => {
     expect(monthStart("2026-06-15")).toBe("2026-06-01");
+  });
+});
+
+describe("billingRangeWithFallbackDays", () => {
+  it("uses fallback when since is omitted", () => {
+    const range = billingRangeWithFallbackDays(undefined, undefined, 7);
+    expect(range.since).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(range.until).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("billingRangeFromMonthStart", () => {
+  it("defaults since to month start", () => {
+    const range = billingRangeFromMonthStart(undefined, undefined, 30);
+    expect(range.since).toMatch(/^\d{4}-\d{2}-01$/);
+  });
+
+  it("keeps explicit ISO since", () => {
+    expect(billingRangeFromMonthStart("2026-01-15", undefined, 30).since).toBe("2026-01-15");
   });
 });
