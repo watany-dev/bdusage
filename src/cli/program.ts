@@ -9,7 +9,12 @@ import { runUsers } from "../commands/users.js";
 import { runWeekly } from "../commands/weekly.js";
 import { runWhoami } from "../commands/whoami.js";
 import { TOOL_NAME, VERSION } from "../version.js";
-import { buildCommandContext, type GlobalOptions, mapCliError } from "./context.js";
+import {
+  buildCommandContext,
+  type GlobalOptions,
+  mapCliError,
+  normalizeCurEngine,
+} from "./context.js";
 
 type CommandRunner = (ctx: Awaited<ReturnType<typeof buildCommandContext>>) => Promise<string>;
 
@@ -18,6 +23,11 @@ function attachGlobalOptions(cmd: Command): Command {
     .option("--profile <name>", "AWS profile for API calls")
     .option("--region <region>", "AWS region for API calls")
     .option("--source <name>", "Data source (cur|ce|logs|auto)", "auto")
+    .option(
+      "--cur-engine <name>",
+      "CUR backend (auto|duckdb|athena); default reads config cur.engine",
+      "auto",
+    )
     .option("--principal <arn>", "Filter by IAM principal ARN")
     .option("--principal-role <roleArn>", "Aggregate assumed-role sessions by role ARN")
     .option("--principal-tag <key=value>", "Filter by cost allocation tag (--source ce)")
@@ -38,6 +48,7 @@ function readGlobalOptions(cmd: Command): GlobalOptions {
     profile?: string;
     region?: string;
     source?: string;
+    curEngine?: string;
     principal?: string;
     principalRole?: string;
     principalTag?: string;
@@ -52,6 +63,7 @@ function readGlobalOptions(cmd: Command): GlobalOptions {
 
   const base: GlobalOptions = {
     source: normalizeSource(opts.source ?? "auto"),
+    curEngine: normalizeCurEngine(opts.curEngine ?? "auto"),
     allPrincipals: Boolean(opts.all),
     json: Boolean(opts.json),
     csv: Boolean(opts.csv),

@@ -1,3 +1,4 @@
+import type { ResolvedCurEngine } from "./engine.js";
 import type { PrincipalFilter } from "./principal.js";
 import type { ResolvedSourceName } from "./source.js";
 
@@ -11,6 +12,8 @@ export interface ReportMeta {
   version: string;
   source: ResolvedSourceName;
   sourceLabel: string;
+  engine?: ResolvedCurEngine;
+  engineLabel?: string;
   profile: string;
   region: string;
   principal: PrincipalFilter;

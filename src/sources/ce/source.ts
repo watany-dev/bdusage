@@ -17,7 +17,7 @@ import {
   mapRawModelRows,
   mapRawMonthlyRows,
   mapRawRowsToWeekly,
-} from "../cur/aggregate.js";
+} from "../cur-athena/aggregate.js";
 import { buildCeFilter } from "./filters.js";
 
 export class CeSource implements BillingSource {

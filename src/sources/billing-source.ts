@@ -1,3 +1,4 @@
+import type { ResolvedCurEngine } from "../types/engine.js";
 import type { PrincipalFilter } from "../types/principal.js";
 import type {
   BillingDataStatus,
@@ -21,4 +22,9 @@ export interface BillingSource {
     status: BillingDataStatus;
     latest: string | null;
   }>;
+}
+
+export interface CurBillingSource extends BillingSource {
+  readonly resolved: "cur";
+  readonly curEngine: ResolvedCurEngine;
 }

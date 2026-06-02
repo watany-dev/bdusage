@@ -16,6 +16,7 @@ function headerBlock(meta: ReportMeta): string[] {
   const lines = [
     meta.version,
     `source: ${meta.sourceLabel}`,
+    ...(meta.engineLabel ? [`engine: ${meta.engineLabel}`] : []),
     `profile: ${meta.profile}`,
     `principal: ${meta.principalDisplay}`,
     `period: ${meta.period.since}..${meta.period.until}`,

@@ -1,4 +1,3 @@
-import type { AthenaExecutor } from "../../aws/athena.js";
 import type { BdusageConfig } from "../../config/schema.js";
 import type { PrincipalFilter } from "../../types/principal.js";
 import type {
@@ -9,7 +8,7 @@ import type {
   UserRow,
   WeeklyRow,
 } from "../../types/report.js";
-import type { BillingSource } from "../billing-source.js";
+import type { CurBillingSource } from "../billing-source.js";
 import {
   athenaRowsToRaw,
   mapRawDailyRows,
@@ -17,10 +16,11 @@ import {
   mapRawMonthlyRows,
   mapRawUserRows,
   mapRawWeeklyRows,
-} from "./aggregate.js";
+} from "../cur-athena/aggregate.js";
+import type { DateRange } from "../cur-athena/queries.js";
+import type { DuckDbExecutor } from "./duckdb.js";
 import {
   billingFreshnessQuery,
-  type DateRange,
   dailyQuery,
   modelsQuery,
   monthlyQuery,
@@ -28,40 +28,37 @@ import {
   weeklyQuery,
 } from "./queries.js";
 
-export class CurSource implements BillingSource {
+export class CurDuckDbSource implements CurBillingSource {
   readonly resolved = "cur" as const;
+  readonly curEngine = "duckdb" as const;
+
   constructor(
-    private readonly executor: AthenaExecutor,
+    private readonly executor: DuckDbExecutor,
     private readonly config: BdusageConfig,
   ) {}
 
   async fetchDaily(principal: PrincipalFilter, range: DateRange): Promise<DailyRow[]> {
-    const sql = dailyQuery(this.config, principal, range);
-    const rows = await this.run(sql);
+    const rows = await this.executor.executeQuery(dailyQuery(this.config, principal, range));
     return mapRawDailyRows(athenaRowsToRaw(rows));
   }
 
   async fetchWeekly(principal: PrincipalFilter, range: DateRange): Promise<WeeklyRow[]> {
-    const sql = weeklyQuery(this.config, principal, range);
-    const rows = await this.run(sql);
+    const rows = await this.executor.executeQuery(weeklyQuery(this.config, principal, range));
     return mapRawWeeklyRows(athenaRowsToRaw(rows));
   }
 
   async fetchMonthly(principal: PrincipalFilter, range: DateRange): Promise<MonthlyRow[]> {
-    const sql = monthlyQuery(this.config, principal, range);
-    const rows = await this.run(sql);
+    const rows = await this.executor.executeQuery(monthlyQuery(this.config, principal, range));
     return mapRawMonthlyRows(athenaRowsToRaw(rows));
   }
 
   async fetchUsers(range: DateRange): Promise<UserRow[]> {
-    const sql = usersByPrincipalQuery(this.config, range);
-    const rows = await this.run(sql);
+    const rows = await this.executor.executeQuery(usersByPrincipalQuery(this.config, range));
     return mapRawUserRows(athenaRowsToRaw(rows));
   }
 
   async fetchModels(principal: PrincipalFilter, range: DateRange): Promise<ModelRow[]> {
-    const sql = modelsQuery(this.config, principal, range);
-    const rows = await this.run(sql);
+    const rows = await this.executor.executeQuery(modelsQuery(this.config, principal, range));
     return mapRawModelRows(athenaRowsToRaw(rows));
   }
 
@@ -69,25 +66,11 @@ export class CurSource implements BillingSource {
     status: BillingDataStatus;
     latest: string | null;
   }> {
-    const sql = billingFreshnessQuery(this.config, principal);
-    const rows = await this.run(sql);
+    const rows = await this.executor.executeQuery(billingFreshnessQuery(this.config, principal));
     const latest = rows[0]?.["latest_usage"] ?? null;
     if (!latest) {
       return { status: "unknown", latest: null };
     }
     return { status: "partial", latest };
-  }
-
-  private async run(sql: string): Promise<Array<Record<string, string | null>>> {
-    const { database, workgroup, output_location } = this.config.athena;
-    if (!output_location) {
-      throw new Error("athena.output_location is not set in config. Run bdusage doctor.");
-    }
-    return this.executor.executeQuery({
-      sql,
-      database,
-      workgroup,
-      outputLocation: output_location,
-    });
   }
 }

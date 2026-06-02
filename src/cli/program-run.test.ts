@@ -8,6 +8,7 @@ vi.mock("./context.js", () => ({
     outputFormat: "table",
   }),
   mapCliError: vi.fn().mockReturnValue({ message: "fail", exitCode: 1 }),
+  normalizeCurEngine: (value: string) => value,
 }));
 
 describe("runWithHandler", () => {
