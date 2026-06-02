@@ -81,7 +81,6 @@ WHERE line_item_product_code = 'AmazonBedrock'
   AND line_item_iam_principal IS NOT NULL
   AND TRIM(line_item_iam_principal) <> ''
 GROUP BY 1, 3
-ORDER BY 2 DESC
 `.trim();
 }
 

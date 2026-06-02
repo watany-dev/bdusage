@@ -1,10 +1,10 @@
 export const COMMAND_NAMES = [
   "summary",
   "daily",
+  "weekly",
   "monthly",
   "models",
   "users",
-  "cache",
   "today",
   "whoami",
   "doctor",

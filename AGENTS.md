@@ -62,7 +62,7 @@ Do not skip these checks.
 
 Not in v0.1: `today --source logs` (v0.3), Cost Explorer fallback (v0.2), managed mode (v0.4), prompt/response body display.
 
-Commands (current): `summary`, `daily`, `monthly`, `models`, `whoami`, `doctor`, `today --source logs`. Use `--source cur|ce|auto` for billing; `--source logs` for estimates only.
+Commands (current): `summary`, `daily`, `weekly`, `monthly`, `models`, `users --all`, `whoami`, `doctor`, `today --source logs`. Use `--source cur|ce|auto` for billing; `--source logs` for estimates only. `users` requires `--source cur`.
 
 ## Domain Rules (must preserve)
 

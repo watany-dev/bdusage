@@ -8,7 +8,7 @@ import type {
   UserRow,
   WeeklyRow,
 } from "../../types/report.js";
-import { weekEndFromStart } from "../../util/weeks.js";
+import { weekEndFromStart, weekStartMonday } from "../../util/weeks.js";
 
 interface RawUsageRow {
   usage_date?: string;
@@ -58,6 +58,26 @@ export function mapRawDailyRows(rows: RawUsageRow[]): DailyRow[] {
       tokens: bucket.tokens,
       top_model: pickTopModel(bucket.models),
     }));
+}
+
+/** Build weekly rows from daily-granularity raw rows (usage_date + usage_type). */
+export function mapRawRowsToWeekly(rows: RawUsageRow[]): WeeklyRow[] {
+  const byWeek = new Map<string, RawUsageRow[]>();
+  for (const row of rows) {
+    const date = row.usage_date;
+    if (!date) {
+      continue;
+    }
+    const weekStart = weekStartMonday(date);
+    const bucket = byWeek.get(weekStart) ?? [];
+    bucket.push({ ...row, week_start: weekStart });
+    byWeek.set(weekStart, bucket);
+  }
+  const weeklyRows: RawUsageRow[] = [];
+  for (const [, group] of byWeek) {
+    weeklyRows.push(...group);
+  }
+  return mapRawWeeklyRows(weeklyRows);
 }
 
 export function mapRawWeeklyRows(rows: RawUsageRow[]): WeeklyRow[] {

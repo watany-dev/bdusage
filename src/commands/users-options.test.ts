@@ -46,6 +46,16 @@ describe("assertUsersCommandOptions", () => {
       ),
     ).toThrow("does not accept");
   });
+
+  it("rejects --principal-from-profile", () => {
+    expect(() =>
+      assertUsersCommandOptions(
+        baseCtx({
+          options: { source: "cur", allPrincipals: true, principalFromProfile: "billing" },
+        }),
+      ),
+    ).toThrow("does not accept");
+  });
 });
 
 describe("assertUsersBillingSource", () => {

@@ -4,6 +4,7 @@ import {
   mapRawDailyRows,
   mapRawModelRows,
   mapRawMonthlyRows,
+  mapRawRowsToWeekly,
   mapRawUserRows,
   mapRawWeeklyRows,
 } from "./aggregate.js";
@@ -46,6 +47,27 @@ describe("mapRawDailyRows", () => {
     expect(rows[0]?.cost).toBeCloseTo(0.18);
     expect(rows[0]?.tokens.input).toBe(1000);
     expect(rows[0]?.tokens.output).toBe(500);
+    expect(rows[0]?.top_model).toBe("Claude 3.5 Sonnet");
+  });
+});
+
+describe("mapRawRowsToWeekly", () => {
+  it("rolls daily usage rows into weeks", () => {
+    const rows = mapRawRowsToWeekly([
+      {
+        usage_date: "2026-06-02",
+        usage_type: "USE1-Claude-3.5-Sonnet-Input-Tokens",
+        cost: 1,
+        usage_amount: 10,
+      },
+      {
+        usage_date: "2026-06-08",
+        usage_type: "USE1-Claude-3.5-Sonnet-Input-Tokens",
+        cost: 2,
+        usage_amount: 5,
+      },
+    ]);
+    expect(rows).toHaveLength(2);
     expect(rows[0]?.top_model).toBe("Claude 3.5 Sonnet");
   });
 });

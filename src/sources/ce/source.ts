@@ -11,9 +11,13 @@ import type {
   WeeklyRow,
 } from "../../types/report.js";
 import { type DateRange, todayUtc } from "../../util/dates.js";
-import { aggregateDailyToWeekly } from "../../util/weeks.js";
 import type { BillingSource } from "../billing-source.js";
-import { mapRawDailyRows, mapRawModelRows, mapRawMonthlyRows } from "../cur/aggregate.js";
+import {
+  mapRawDailyRows,
+  mapRawModelRows,
+  mapRawMonthlyRows,
+  mapRawRowsToWeekly,
+} from "../cur/aggregate.js";
 import { buildCeFilter } from "./filters.js";
 
 export class CeSource implements BillingSource {
@@ -40,8 +44,18 @@ export class CeSource implements BillingSource {
   }
 
   async fetchWeekly(principal: PrincipalFilter, range: DateRange): Promise<WeeklyRow[]> {
-    const daily = await this.fetchDaily(principal, range);
-    return aggregateDailyToWeekly(daily);
+    const results = await this.client.getCostAndUsage({
+      TimePeriod: buildCeTimePeriod(range),
+      Granularity: "DAILY",
+      Metrics: [ceMetricName(this.config.cost.metric), "UsageQuantity"],
+      Filter: buildCeFilter(principal),
+      GroupBy: [{ Type: "DIMENSION", Key: "USAGE_TYPE" }],
+    });
+    const raw = parseCeGroups(results, {
+      dateKey: "usage_date",
+      metric: this.config.cost.metric,
+    });
+    return mapRawRowsToWeekly(raw);
   }
 
   async fetchMonthly(principal: PrincipalFilter, range: DateRange): Promise<MonthlyRow[]> {

@@ -46,6 +46,7 @@ describe("aggregateDailyToWeekly", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]?.cost).toBe(3);
     expect(rows[0]?.tokens.input).toBe(30);
+    expect(rows[0]?.top_model).toBe("B");
     expect(rows[1]?.cost).toBe(4);
   });
 });

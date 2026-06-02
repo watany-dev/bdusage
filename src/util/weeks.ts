@@ -1,3 +1,4 @@
+import { pickTopModel } from "../bedrock/model-normalizer.js";
 import type { DailyRow, WeeklyRow } from "../types/report.js";
 
 /** ISO week starts on Monday (UTC). */
@@ -19,9 +20,9 @@ export function formatWeekLabel(weekStart: string, weekEnd: string): string {
   return `${weekStart}..${weekEnd}`;
 }
 
-/** Roll up daily billing rows into ISO weeks (Monday start, UTC). */
+/** Roll up pre-aggregated daily rows into ISO weeks (fallback; top_model is approximate). */
 export function aggregateDailyToWeekly(rows: DailyRow[]): WeeklyRow[] {
-  const byWeek = new Map<string, WeeklyRow>();
+  const byWeek = new Map<string, WeeklyRow & { models: Map<string, number> }>();
 
   for (const row of rows) {
     const week_start = weekStartMonday(row.date);
@@ -34,6 +35,7 @@ export function aggregateDailyToWeekly(rows: DailyRow[]): WeeklyRow[] {
         cost: 0,
         tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
         top_model: null,
+        models: new Map(),
       };
       byWeek.set(week_start, bucket);
     }
@@ -42,7 +44,15 @@ export function aggregateDailyToWeekly(rows: DailyRow[]): WeeklyRow[] {
     bucket.tokens.output += row.tokens.output;
     bucket.tokens.cache_read += row.tokens.cache_read;
     bucket.tokens.cache_write += row.tokens.cache_write;
+    if (row.top_model) {
+      bucket.models.set(row.top_model, (bucket.models.get(row.top_model) ?? 0) + row.cost);
+    }
   }
 
-  return [...byWeek.values()].sort((a, b) => a.week_start.localeCompare(b.week_start));
+  return [...byWeek.values()]
+    .sort((a, b) => a.week_start.localeCompare(b.week_start))
+    .map(({ models, ...week }) => ({
+      ...week,
+      top_model: pickTopModel(models),
+    }));
 }

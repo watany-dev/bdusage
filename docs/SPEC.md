@@ -540,7 +540,7 @@ npx bdusage users --all --since 30d
 
 IAM principal 別の Bedrock コストランキング（コスト降順）。**`--all` 必須**。`--source cur`（または `auto` が cur に解決されること）が必要。Cost Explorer では IAM principal 単位のグループ化ができないため、`--source ce` では利用不可。
 
-`--principal` / `--principal-role` / `--principal-tag` は指定不可（全 principal を対象とするため）。
+`--principal` / `--principal-role` / `--principal-tag` / `--principal-from-profile` は指定不可（全 principal を対象とするため）。
 
 ### 21.1a weekly
 
@@ -621,7 +621,40 @@ npx bdusage today --source logs
 }
 ```
 
-### 23.3 doctor 結果
+### 23.3 weekly 行
+
+```json
+{
+  "week_start": "2026-06-01",
+  "week_end": "2026-06-07",
+  "cost": 1.72,
+  "tokens": {
+    "input": 361200,
+    "output": 49500,
+    "cache_read": 812000,
+    "cache_write": 24100
+  },
+  "top_model": "Claude Sonnet"
+}
+```
+
+### 23.4 users 行
+
+```json
+{
+  "principal": "arn:aws:sts::123456789012:assumed-role/BedrockDeveloper/alice@example.com",
+  "cost": 12.43,
+  "tokens": {
+    "input": 320000,
+    "output": 45000,
+    "cache_read": 700000,
+    "cache_write": 20000
+  },
+  "top_model": "Claude 3.5 Sonnet"
+}
+```
+
+### 23.5 doctor 結果
 
 ```json
 {
@@ -641,7 +674,7 @@ npx bdusage today --source logs
 bdusage/
   src/
     cli.ts
-    commands/       # summary, daily, monthly, models, users, cache, today, whoami, doctor
+    commands/       # summary, daily, weekly, monthly, models, users, cache, today, whoami, doctor
     aws/            # credentials, sts, athena, cost-explorer, cloudwatch-*, pricing
     sources/        # cur, ce, logs, metrics
     bedrock/        # usage-type-parser, model-normalizer, token-types

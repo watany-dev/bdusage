@@ -92,6 +92,7 @@ describe("CeSource", () => {
       { since: "2026-06-01", until: "2026-06-08" },
     );
     expect(weekly[0]?.cost).toBe(3);
+    expect(weekly[0]?.top_model).toBeTruthy();
   });
 
   it("fetchUsers rejects CE principal grouping", async () => {
