@@ -302,7 +302,8 @@ async function appendCeChecks(
     checks.push({
       name: "ce_bedrock_access",
       status: "ok",
-      message: "Cost Explorer can read Amazon Bedrock costs",
+      message:
+        "Cost Explorer can read Amazon Bedrock costs. Filter with --principal-tag key=value; IAM ARN filter needs --source cur.",
     });
   } catch (error) {
     checks.push({
@@ -312,13 +313,6 @@ async function appendCeChecks(
       fix: "Grant ce:GetCostAndUsage for Cost Explorer fallback (SPEC §15).",
     });
   }
-
-  checks.push({
-    name: "ce_principal_tag",
-    status: "ok",
-    message:
-      "Use --principal-tag <key=value> with --source ce to filter by cost allocation tag. IAM principal ARN filtering requires CUR (--source cur).",
-  });
 }
 
 async function appendLogsChecks(
@@ -359,7 +353,8 @@ log_group = "/aws/bedrock/modelinvocations"`,
     checks.push({
       name: "logs_insights_query",
       status: "ok",
-      message: "CloudWatch Logs Insights can query Bedrock invocation logs",
+      message:
+        "CloudWatch Logs Insights can query Bedrock invocation logs. Use --principal self|arn|role; identity.arn is filtered, bodies are never queried.",
     });
   } catch (error) {
     checks.push({
@@ -369,13 +364,6 @@ log_group = "/aws/bedrock/modelinvocations"`,
       fix: "Enable Bedrock model invocation logging to CloudWatch Logs (SPEC §7.3). Grant logs:StartQuery, logs:GetQueryResults.",
     });
   }
-
-  checks.push({
-    name: "logs_principal_filter",
-    status: "ok",
-    message:
-      "Use --principal self|arn|role with --source logs. identity.arn is filtered in Insights queries; body fields are never queried.",
-  });
 }
 
 export function overallStatus(checks: DoctorCheck[]): "ok" | "fail" {
