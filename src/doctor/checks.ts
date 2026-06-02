@@ -2,9 +2,16 @@ import type { AthenaExecutor } from "../aws/athena.js";
 import { createCloudWatchLogsClient, LiveCloudWatchLogsClient } from "../aws/cloudwatch-logs.js";
 import { createCostExplorerClient, LiveCostExplorerClient } from "../aws/cost-explorer.js";
 import { getCallerIdentity } from "../aws/sts.js";
+import { hasDuckDbFiles } from "../config/load.js";
 import type { BdusageConfig } from "../config/schema.js";
 import { buildCeFilter } from "../sources/ce/filters.js";
-import { iamPrincipalColumnCheckQuery, sampleBedrockQuery } from "../sources/cur/queries.js";
+import { iamPrincipalColumnCheckQuery, sampleBedrockQuery } from "../sources/cur-athena/queries.js";
+import { createDuckDbExecutor, DuckDbUnavailableError } from "../sources/cur-duckdb/duckdb.js";
+import {
+  iamPrincipalColumnCheckQuery as duckdbIamPrincipalQuery,
+  sampleBedrockQuery as duckdbSampleQuery,
+} from "../sources/cur-duckdb/queries.js";
+import { checkRequiredColumns } from "../sources/cur-duckdb/schema.js";
 import { todayUtc } from "../util/dates.js";
 
 type CheckStatus = "ok" | "fail" | "warn";
@@ -50,100 +57,8 @@ export async function runDoctorChecks(
     message: configPath,
   });
 
-  if (!config.athena.output_location) {
-    checks.push({
-      name: "athena_output_location",
-      status: "fail",
-      message: "athena.output_location is empty",
-      fix: "Set athena.output_location in config.toml (S3 path for query results).",
-    });
-  } else {
-    checks.push({
-      name: "athena_output_location",
-      status: "ok",
-      message: config.athena.output_location,
-    });
-  }
-
-  if (!executor) {
-    checks.push({
-      name: "athena_query",
-      status: "warn",
-      message: "Skipped live Athena checks (no executor)",
-    });
-  } else {
-    const { database, workgroup, output_location } = config.athena;
-    if (!output_location) {
-      checks.push({
-        name: "athena_query",
-        status: "warn",
-        message: "Skipped live Athena checks (output_location not set)",
-      });
-    } else {
-      const baseInput = {
-        database,
-        workgroup,
-        outputLocation: output_location,
-      };
-
-      try {
-        await executor.executeQuery({
-          ...baseInput,
-          sql: sampleBedrockQuery(config),
-        });
-        checks.push({
-          name: "sample_bedrock_query",
-          status: "ok",
-          message: "Bedrock usage rows reachable",
-        });
-      } catch (error) {
-        checks.push({
-          name: "sample_bedrock_query",
-          status: "fail",
-          message: error instanceof Error ? error.message : String(error),
-          fix: "Verify Athena database/table and IAM permissions (SPEC §15).",
-        });
-      }
-
-      try {
-        const rows = await executor.executeQuery({
-          ...baseInput,
-          sql: iamPrincipalColumnCheckQuery(config),
-        });
-        if (rows.length === 0) {
-          checks.push({
-            name: "cur_iam_principal_column",
-            status: "fail",
-            message: "line_item_iam_principal column not found or always NULL",
-            fix: IAM_PRINCIPAL_FIX,
-          });
-        } else {
-          checks.push({
-            name: "cur_iam_principal_column",
-            status: "ok",
-            message: "IAM principal data present in CUR",
-          });
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (message.includes("line_item_iam_principal")) {
-          checks.push({
-            name: "cur_iam_principal_column",
-            status: "fail",
-            message: "line_item_iam_principal column not found or always NULL",
-            fix: IAM_PRINCIPAL_FIX,
-          });
-        } else {
-          checks.push({
-            name: "cur_iam_principal_column",
-            status: "fail",
-            message,
-            fix: IAM_PRINCIPAL_FIX,
-          });
-        }
-      }
-    }
-  }
+  await appendDuckDbChecks(checks, config);
+  await appendAthenaChecks(checks, config, executor);
 
   const region = config.aws.region ?? "us-east-1";
   const profile = config.aws.profile;
@@ -151,6 +66,218 @@ export async function runDoctorChecks(
   await appendLogsChecks(checks, config, region, profile);
 
   return checks;
+}
+
+async function appendDuckDbChecks(checks: DoctorCheck[], config: BdusageConfig): Promise<void> {
+  if (!hasDuckDbFiles(config)) {
+    checks.push({
+      name: "duckdb_files",
+      status: "warn",
+      message: "cur.duckdb.files is not set",
+      fix: `Add to config.toml:
+[cur.duckdb]
+files = "s3://your-cur-bucket/export/**/*.parquet"
+s3_region = "ap-northeast-1"`,
+    });
+    return;
+  }
+
+  checks.push({
+    name: "duckdb_files",
+    status: "ok",
+    message: `${config.cur.duckdb.files.length} path(s): ${config.cur.duckdb.files.join(", ")}`,
+  });
+
+  let duckExecutor: Awaited<ReturnType<typeof createDuckDbExecutor>> | null = null;
+  try {
+    duckExecutor = await createDuckDbExecutor(config);
+    checks.push({
+      name: "duckdb_httpfs",
+      status: "ok",
+      message: "httpfs extension loaded",
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (error instanceof DuckDbUnavailableError && message.includes("httpfs")) {
+      checks.push({
+        name: "duckdb_httpfs",
+        status: "fail",
+        message,
+        fix: "Ensure @duckdb/node-api is installed and DuckDB can load extensions.",
+      });
+    } else {
+      checks.push({
+        name: "duckdb_connect",
+        status: "fail",
+        message,
+        fix: "Check cur.duckdb.files, AWS profile, and s3_region for the CUR export bucket.",
+      });
+    }
+    return;
+  }
+
+  try {
+    await duckExecutor.executeQuery(duckdbSampleQuery());
+    checks.push({
+      name: "duckdb_sample_bedrock_query",
+      status: "ok",
+      message: "Bedrock usage rows reachable via DuckDB",
+    });
+  } catch (error) {
+    checks.push({
+      name: "duckdb_sample_bedrock_query",
+      status: "fail",
+      message: error instanceof Error ? error.message : String(error),
+      fix: "Verify cur.duckdb.files glob matches Parquet export paths.",
+    });
+  }
+
+  try {
+    const { ok, missing } = await checkRequiredColumns(duckExecutor, config);
+    if (ok) {
+      checks.push({
+        name: "duckdb_required_columns",
+        status: "ok",
+        message: "Required CUR columns present",
+      });
+    } else {
+      checks.push({
+        name: "duckdb_required_columns",
+        status: "fail",
+        message: `Missing columns: ${missing.join(", ")}`,
+        fix: "Ensure CUR 2.0 export includes standard line item columns.",
+      });
+    }
+  } catch (error) {
+    checks.push({
+      name: "duckdb_required_columns",
+      status: "fail",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  try {
+    const rows = await duckExecutor.executeQuery(duckdbIamPrincipalQuery());
+    if (rows.length === 0) {
+      checks.push({
+        name: "duckdb_iam_principal_column",
+        status: "fail",
+        message: "line_item_iam_principal column not found or always NULL",
+        fix: IAM_PRINCIPAL_FIX,
+      });
+    } else {
+      checks.push({
+        name: "duckdb_iam_principal_column",
+        status: "ok",
+        message: "IAM principal data present in CUR",
+      });
+    }
+  } catch (error) {
+    checks.push({
+      name: "duckdb_iam_principal_column",
+      status: "fail",
+      message: error instanceof Error ? error.message : String(error),
+      fix: IAM_PRINCIPAL_FIX,
+    });
+  } finally {
+    await duckExecutor.close();
+  }
+}
+
+async function appendAthenaChecks(
+  checks: DoctorCheck[],
+  config: BdusageConfig,
+  executor: AthenaExecutor | null,
+): Promise<void> {
+  const outputLocation = config.cur.athena.output_location;
+  if (!outputLocation) {
+    checks.push({
+      name: "athena_output_location",
+      status: "warn",
+      message: "cur.athena.output_location is empty (Athena backend skipped)",
+      fix: "Set cur.athena.output_location for Athena CUR queries.",
+    });
+    if (!hasDuckDbFiles(config)) {
+      checks.push({
+        name: "athena_query",
+        status: "warn",
+        message: "Skipped live Athena checks (no Athena config and no DuckDB files)",
+      });
+    }
+    return;
+  }
+
+  checks.push({
+    name: "athena_output_location",
+    status: "ok",
+    message: outputLocation,
+  });
+
+  if (!executor) {
+    checks.push({
+      name: "athena_query",
+      status: "warn",
+      message: "Skipped live Athena checks (no executor)",
+    });
+    return;
+  }
+
+  const { database, workgroup } = config.cur.athena;
+  const baseInput = {
+    database,
+    workgroup,
+    outputLocation,
+  };
+
+  try {
+    await executor.executeQuery({
+      ...baseInput,
+      sql: sampleBedrockQuery(config),
+    });
+    checks.push({
+      name: "athena_sample_bedrock_query",
+      status: "ok",
+      message: "Bedrock usage rows reachable via Athena",
+    });
+  } catch (error) {
+    checks.push({
+      name: "athena_sample_bedrock_query",
+      status: "fail",
+      message: error instanceof Error ? error.message : String(error),
+      fix: "Verify Athena database/table and IAM permissions (SPEC §15).",
+    });
+  }
+
+  try {
+    const rows = await executor.executeQuery({
+      ...baseInput,
+      sql: iamPrincipalColumnCheckQuery(config),
+    });
+    if (rows.length === 0) {
+      checks.push({
+        name: "athena_iam_principal_column",
+        status: "fail",
+        message: "line_item_iam_principal column not found or always NULL",
+        fix: IAM_PRINCIPAL_FIX,
+      });
+    } else {
+      checks.push({
+        name: "athena_iam_principal_column",
+        status: "ok",
+        message: "IAM principal data present in CUR",
+      });
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    checks.push({
+      name: "athena_iam_principal_column",
+      status: "fail",
+      message: message.includes("line_item_iam_principal")
+        ? "line_item_iam_principal column not found or always NULL"
+        : message,
+      fix: IAM_PRINCIPAL_FIX,
+    });
+  }
 }
 
 async function appendCeChecks(

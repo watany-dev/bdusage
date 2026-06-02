@@ -5,7 +5,7 @@ import type { PrincipalFilter } from "../../types/principal.js";
 import type { BillingDataStatus, DailyRow, ModelRow, MonthlyRow } from "../../types/report.js";
 import { type DateRange, todayUtc } from "../../util/dates.js";
 import type { BillingSource } from "../billing-source.js";
-import { mapRawDailyRows, mapRawModelRows, mapRawMonthlyRows } from "../cur/aggregate.js";
+import { mapRawDailyRows, mapRawModelRows, mapRawMonthlyRows } from "../cur-athena/aggregate.js";
 import { buildCeFilter } from "./filters.js";
 
 export class CeSource implements BillingSource {

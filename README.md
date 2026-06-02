@@ -120,15 +120,22 @@ npx bdusage users --all --since 30d
 IAM principal 単位の実コストには **CUR 2.0** が必要です。
 
 1. AWS Data Exports / CUR 2.0 を有効化（`INCLUDE_IAM_PRINCIPAL_DATA=true` 推奨）
-2. Athena で CUR テーブルをクエリ可能にする
-3. `~/.config/bdusage/config.toml` に database / table / workgroup を設定
+2. **DuckDB（推奨）**: CUR Parquet の S3 パスを指定するか、**Athena**: Glue/Athena テーブルを設定
+3. `~/.config/bdusage/config.toml` に backend を設定
 
 ```toml
 [aws]
 profile = "default"
 region = "ap-northeast-1"
 
-[athena]
+[cur]
+engine = "auto"
+
+[cur.duckdb]
+files = "s3://my-cur-bucket/export/**/*.parquet"
+s3_region = "ap-northeast-1"
+
+[cur.athena]
 database = "cur"
 table = "cost_and_usage_report"
 workgroup = "primary"
@@ -137,6 +144,8 @@ output_location = "s3://my-athena-query-results/bdusage/"
 [logs]
 log_group = "/aws/bedrock/modelinvocations"
 ```
+
+旧 `[athena]` セクションも互換読み込みされます。レポートには `source: CUR 2.0 actual` と `engine: DuckDB direct Parquet`（または Athena）が表示されます。
 
 ### CloudWatch Logs（`today --source logs`）
 

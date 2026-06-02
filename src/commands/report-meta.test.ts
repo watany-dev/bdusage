@@ -20,4 +20,14 @@ describe("buildReportMeta", () => {
     expect(meta.sourceLabel).toBe("CUR 2.0 actual");
     expect(meta.period.until).toBe("2026-06-02");
   });
+
+  it("includes engine label when DuckDB backend resolved", () => {
+    const meta = buildReportMeta(
+      { ...ctx, resolvedSource: "cur", resolvedCurEngine: "duckdb" },
+      { kind: "self", arn: "arn:1" },
+      { since: "2026-06-01", until: "2026-06-03" },
+    );
+    expect(meta.engine).toBe("duckdb");
+    expect(meta.engineLabel).toBe("DuckDB direct Parquet");
+  });
 });

@@ -47,7 +47,8 @@ Do not skip these checks.
 | `src/cli/program.ts` | Commander program, global options, command dispatch |
 | `src/cli/context.ts` | Config load, principal resolution, error mapping |
 | `src/commands/*.ts` | summary, daily, monthly, models, whoami, doctor |
-| `src/sources/cur/` | CUR SQL builders, Athena aggregation |
+| `src/sources/cur-athena/` | CUR SQL builders, Athena aggregation |
+| `src/sources/cur-duckdb/` | CUR Parquet direct read via DuckDB |
 | `src/aws/` | STS, Athena clients |
 | `src/bedrock/` | usage-type parser, model normalizer |
 | `src/output/` | table / json / csv formatters |

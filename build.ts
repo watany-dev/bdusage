@@ -7,6 +7,7 @@ const [cliResult, libResult] = await Promise.all([
     minify: true,
     naming: "cli.mjs",
     banner: "#!/usr/bin/env node",
+    external: ["@duckdb/node-api", "@duckdb/node-bindings"],
   }),
   Bun.build({
     entrypoints: ["./src/index.ts"],
