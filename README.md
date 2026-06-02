@@ -61,6 +61,7 @@ npx bdusage today --source logs
 --profile <name>              # AWS API 用プロファイル
 --region <region>             # AWS API 実行リージョン
 --source <cur|ce|logs|metrics|auto>   # データソース（デフォルト: auto → cur 優先）
+--cur-engine <auto|duckdb|athena>    # CUR backend（デフォルト: auto → DuckDB → Athena）
 --principal self              # 自分の caller identity のみ（デフォルト）
 --principal <arn>             # 指定 IAM principal ARN
 --principal-role <role-arn>   # assumed role を role 単位で集計
@@ -106,7 +107,7 @@ npx bdusage users --all --since 30d
 
 | source | 表示 | 用途 |
 |--------|------|------|
-| `cur` | actual | IAM principal 別の正確な実コスト（CUR 2.0 + Athena） |
+| `cur` | actual | IAM principal 別の正確な実コスト（CUR 2.0。DuckDB または Athena） |
 | `ce` | actual-lite | CUR 未設定時の fallback（Cost Explorer API） |
 | `logs` | estimate | 今日の速報（`today` コマンド） |
 | `metrics` | estimate/volume | モデル別全体傾向（principal 別不可） |
