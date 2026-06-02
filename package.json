@@ -1,0 +1,75 @@
+{
+  "name": "bdusage",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/watany-dev/bdusage.git"
+  },
+  "main": "./dist/index.js",
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.15",
+    "@types/bun": "^1.2.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "knip": "^5.83.1",
+    "oxlint": "^0.15.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "bdusage": "dist/cli.mjs"
+  },
+  "bugs": {
+    "url": "https://github.com/watany-dev/bdusage/issues"
+  },
+  "description": "CLI to view Amazon Bedrock usage and costs from AWS billing and monitoring data",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://github.com/watany-dev/bdusage#readme",
+  "keywords": [
+    "aws",
+    "bedrock",
+    "finops",
+    "cost",
+    "cli",
+    "cur",
+    "athena",
+    "usage"
+  ],
+  "license": "MIT",
+  "overrides": {
+    "fast-xml-parser": ">=5.5.7",
+    "rollup": ">=4.59.0",
+    "smol-toml": ">=1.6.1",
+    "vite": ">=7.3.2 <8.0.0",
+    "picomatch": ">=4.0.4"
+  },
+  "scripts": {
+    "build": "bun run build.ts && tsc --emitDeclarationOnly && chmod +x dist/cli.mjs",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "lint": "oxlint -c .oxlintrc.json --tsconfig ./tsconfig.json --import-plugin --deny-warnings ./src",
+    "lint:fix": "oxlint -c .oxlintrc.json --tsconfig ./tsconfig.json --import-plugin --fix ./src",
+    "format": "biome check --write ./src",
+    "format:check": "biome check ./src",
+    "check": "tsc --noEmit",
+    "dead-code": "knip",
+    "audit": "bun audit",
+    "security": "bun run dead-code && bun run audit",
+    "validate": "bun run check && bun run lint && bun run format:check && bun run test:coverage",
+    "ci": "bun run lint && bun run format:check && bun run check && bun run dead-code && bun run audit && bun run test:coverage && bun run build",
+    "prepublishOnly": "bun run build"
+  },
+  "type": "module",
+  "types": "./dist/index.d.ts"
+}
