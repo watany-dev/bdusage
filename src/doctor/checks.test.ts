@@ -1,0 +1,104 @@
+import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_CONFIG } from "../config/schema.js";
+import { overallStatus, runDoctorChecks } from "./checks.js";
+
+const config = {
+  ...DEFAULT_CONFIG,
+  athena: {
+    ...DEFAULT_CONFIG.athena,
+    output_location: "s3://bucket/prefix/",
+  },
+};
+
+const identity = {
+  account: "123",
+  arn: "arn:aws:sts::123:assumed-role/R/u",
+  userId: "A",
+};
+
+vi.mock("../aws/sts.js", () => ({
+  getCallerIdentity: vi.fn(),
+}));
+
+describe("runDoctorChecks", () => {
+  it("reports ok when principal column has data", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", {
+      executeQuery: vi
+        .fn()
+        .mockResolvedValueOnce([{ line_item_usage_type: "X" }])
+        .mockResolvedValueOnce([{ line_item_iam_principal: "arn:1" }]),
+    });
+    expect(checks.find((c) => c.name === "aws_credentials")?.status).toBe("ok");
+    expect(checks.find((c) => c.name === "cur_iam_principal_column")?.status).toBe("ok");
+    expect(overallStatus(checks)).toBe("ok");
+  });
+
+  it("fails when iam principal column empty", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", {
+      executeQuery: vi
+        .fn()
+        .mockResolvedValueOnce([{ line_item_usage_type: "X" }])
+        .mockResolvedValueOnce([]),
+    });
+    const principal = checks.find((c) => c.name === "cur_iam_principal_column");
+    expect(principal?.status).toBe("fail");
+    expect(principal?.fix).toContain("IAM principal");
+  });
+
+  it("handles credential failure", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockRejectedValueOnce(new Error("no creds"));
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", null);
+    expect(checks.find((c) => c.name === "aws_credentials")?.status).toBe("fail");
+  });
+
+  it("warns when output_location empty", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(
+      { ...config, athena: { ...config.athena, output_location: "" } },
+      "/tmp/config.toml",
+      null,
+    );
+    expect(checks.find((c) => c.name === "athena_output_location")?.status).toBe("fail");
+  });
+
+  it("skips athena when executor is null", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", null);
+    expect(checks.find((c) => c.name === "athena_query")?.status).toBe("warn");
+  });
+
+  it("handles iam principal query error mentioning column", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", {
+      executeQuery: vi
+        .fn()
+        .mockResolvedValueOnce([{ line_item_usage_type: "X" }])
+        .mockRejectedValueOnce(new Error("line_item_iam_principal not found")),
+    });
+    expect(checks.find((c) => c.name === "cur_iam_principal_column")?.status).toBe("fail");
+  });
+
+  it("handles sample query failure", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", {
+      executeQuery: vi.fn().mockRejectedValue(new Error("AccessDenied")),
+    });
+    expect(checks.find((c) => c.name === "sample_bedrock_query")?.status).toBe("fail");
+  });
+});

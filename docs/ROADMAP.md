@@ -11,7 +11,7 @@
 
 ## リリース計画
 
-### v0.1 — CUR actual MVP（現在）
+### v0.1 — CUR actual MVP（リリース済み）
 
 **目的**: IAM principal 単位の Bedrock 実コストを CUR 2.0 + Athena で CLI から確認する。
 
