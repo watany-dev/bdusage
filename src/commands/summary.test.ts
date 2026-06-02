@@ -7,6 +7,8 @@ describe("runSummary", () => {
   it("renders summary table and json", async () => {
     const billing = {
       resolved: "cur" as const,
+      fetchWeekly: vi.fn(),
+      fetchUsers: vi.fn(),
       fetchMonthly: vi.fn().mockResolvedValue([
         {
           month: "2026-06",

@@ -4,7 +4,7 @@ import { overallStatus, runDoctorChecks } from "../doctor/checks.js";
 
 export async function runDoctor(ctx: CommandContext): Promise<string> {
   const executor =
-    ctx.config.athena.output_location.length > 0
+    ctx.config.cur.athena.output_location.length > 0
       ? new LiveAthenaExecutor(
           createAthenaClient(ctx.config.aws.region ?? "us-east-1", ctx.config.aws.profile),
         )

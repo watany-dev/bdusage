@@ -55,4 +55,50 @@ describe("CeSource", () => {
     const freshness = await source.fetchBillingFreshness(principal);
     expect(freshness.status).toBe("partial");
   });
+
+  it("fetchWeekly rolls up daily rows", async () => {
+    const results = [
+      {
+        TimePeriod: { Start: "2026-06-01", End: "2026-06-02" },
+        Groups: [
+          {
+            Keys: ["USE1-Claude-Input-Tokens"],
+            Metrics: {
+              UnblendedCost: { Amount: "1.00", Unit: "USD" },
+              UsageQuantity: { Amount: "10", Unit: "N/A" },
+            },
+          },
+        ],
+      },
+      {
+        TimePeriod: { Start: "2026-06-02", End: "2026-06-03" },
+        Groups: [
+          {
+            Keys: ["USE1-Claude-Input-Tokens"],
+            Metrics: {
+              UnblendedCost: { Amount: "2.00", Unit: "USD" },
+              UsageQuantity: { Amount: "20", Unit: "N/A" },
+            },
+          },
+        ],
+      },
+    ];
+    const client: CostExplorerClientLike = {
+      getCostAndUsage: vi.fn().mockResolvedValue(results),
+    };
+    const source = new CeSource(client, DEFAULT_CONFIG);
+    const weekly = await source.fetchWeekly(
+      { kind: "all" },
+      { since: "2026-06-01", until: "2026-06-08" },
+    );
+    expect(weekly[0]?.cost).toBe(3);
+    expect(weekly[0]?.top_model).toBeTruthy();
+  });
+
+  it("fetchUsers rejects CE principal grouping", async () => {
+    const source = new CeSource({ getCostAndUsage: vi.fn() }, DEFAULT_CONFIG);
+    await expect(source.fetchUsers({ since: "2026-06-01", until: "2026-06-08" })).rejects.toThrow(
+      "--source cur",
+    );
+  });
 });

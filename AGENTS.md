@@ -47,13 +47,15 @@ Do not skip these checks.
 | `src/cli/program.ts` | Commander program, global options, command dispatch |
 | `src/cli/context.ts` | Config load, principal resolution, error mapping |
 | `src/commands/*.ts` | summary, daily, monthly, models, whoami, doctor |
-| `src/sources/cur/` | CUR SQL builders, Athena aggregation |
+| `src/sources/cur-athena/` | CUR SQL builders, Athena aggregation |
+| `src/sources/cur-duckdb/` | CUR Parquet direct read via DuckDB |
 | `src/aws/` | STS, Athena clients |
 | `src/bedrock/` | usage-type parser, model normalizer |
 | `src/output/` | table / json / csv formatters |
 | `src/doctor/` | Setup diagnostics |
 | `src/config/` | `config.toml` load/merge |
-| `docs/SPEC.md` | Full product & engineering spec (Draft v0.1) |
+| `docs/SPEC.md` | Full product & engineering spec (Draft v0.3.1) |
+| `docs/DESIGN.md` | Source / engine separation, DuckDB backend design |
 | `docs/ROADMAP.md` | Version-scoped release plan |
 
 ## Commands (v0.1 target)
@@ -62,7 +64,7 @@ Do not skip these checks.
 
 Not in v0.1: `today --source logs` (v0.3), Cost Explorer fallback (v0.2), managed mode (v0.4), prompt/response body display.
 
-Commands (current): `summary`, `daily`, `monthly`, `models`, `whoami`, `doctor`, `today --source logs`. Use `--source cur|ce|auto` for billing; `--source logs` for estimates only.
+Commands (current): `summary`, `daily`, `weekly`, `monthly`, `models`, `users --all`, `whoami`, `doctor`, `today --source logs`. Use `--source cur|ce|auto` for billing; `--source logs` for estimates only. Use `--cur-engine auto|duckdb|athena` for CUR backend selection. `users` requires `--source cur`.
 
 ## Domain Rules (must preserve)
 

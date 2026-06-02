@@ -7,6 +7,8 @@ function mockCtx(format: CommandContext["outputFormat"]): CommandContext {
   const billing = {
     resolved: "cur" as const,
     fetchDaily: vi.fn(),
+    fetchWeekly: vi.fn(),
+    fetchUsers: vi.fn(),
     fetchMonthly: vi.fn().mockResolvedValue([
       {
         month: "2026-06",

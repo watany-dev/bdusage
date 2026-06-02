@@ -3,9 +3,9 @@
 Amazon Bedrock の使用量と利用料金をターミナルから確認する CLI。体験は [`ccusage`](https://ccusage.com/guide/) に近く、AWS の課金データ（実請求）と監視データ（概算）を分けて表示します。
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-v0.3-green)
+![Status](https://img.shields.io/badge/status-v0.3.1-green)
 
-> **注意**: IAM principal 単位の正確な実コストには CUR 2.0 + Athena が必要です。CUR 未設定時は `--source ce` または `--source auto`（cur → ce フォールバック）で Cost Explorer の actual-lite を利用できます。
+> **注意**: IAM principal 単位の正確な実コストには **CUR 2.0** が必要です。読み取りは **DuckDB direct Parquet**（推奨、`cur.duckdb.files`）または **Athena**（`cur.athena`）を選べます。CUR 未設定時は `--source ce` または `--source auto`（cur → ce フォールバック）で Cost Explorer の actual-lite を利用できます。
 
 ## 概要
 
@@ -16,7 +16,7 @@ Amazon Bedrock の使用量と利用料金をターミナルから確認する C
 - 請求反映前の「今日」を概算で見たい（`bdusage today --source logs`）
 - 管理者が全 principal のランキングを見る（`--all`、v0.1 から help に明記）
 
-**最重要方針**: 実請求（actual）と概算（estimate）を混ぜません。出力には常に `source: CUR 2.0 actual` や `source: CloudWatch Logs estimate` のように表示します。
+**最重要方針**: 実請求（actual）と概算（estimate）を混ぜません。出力には常に `source:` を表示し、CUR actual では `engine:`（DuckDB / Athena）も表示します。
 
 ## クイックスタート
 
@@ -27,9 +27,13 @@ npx bdusage
 # 日次レポート（デフォルト用途）
 npx bdusage daily
 
-# 月次・モデル別
+# 週次・月次・モデル別
+npx bdusage weekly --since 90d
 npx bdusage monthly
 npx bdusage models
+
+# 管理者: IAM principal 別ランキング（--all と CUR が必要）
+npx bdusage users --all --since 30d
 
 # 認証情報とレポート対象 principal の確認
 npx bdusage whoami
@@ -47,11 +51,12 @@ npx bdusage today --source logs
 |----------|------|------|
 | `bdusage` / `summary` | 今月合計・昨日・上位モデル等 | ✅ |
 | `daily` | 日次の利用料金 | ✅ |
+| `weekly` | 週次の利用料金（ISO 週・月曜始まり UTC） | ✅ |
 | `monthly` | 月次の利用料金 | ✅ |
 | `models` | モデル別の使用量・コスト | ✅ |
 | `whoami` | 現在の AWS 認証と principal 解決結果 | ✅ |
-| `doctor` | 設定・権限・CUR・Athena の診断 | ✅ |
-| `users --all` | principal / tag 別ランキング（管理者向け） | 計画 |
+| `doctor` | 設定・権限・CUR（DuckDB / Athena）・CE・Logs の診断 | ✅ |
+| `users --all` | IAM principal 別ランキング（管理者向け・`--source cur`） | ✅ |
 | `cache` | prompt cache read/write の内訳 | 計画 |
 | `today --source logs` | 今日の概算（CloudWatch Logs） | ✅ |
 
@@ -61,6 +66,7 @@ npx bdusage today --source logs
 --profile <name>              # AWS API 用プロファイル
 --region <region>             # AWS API 実行リージョン
 --source <cur|ce|logs|metrics|auto>   # データソース（デフォルト: auto → cur 優先）
+--cur-engine <auto|duckdb|athena>    # CUR backend（デフォルト: auto → DuckDB → Athena）
 --principal self              # 自分の caller identity のみ（デフォルト）
 --principal <arn>             # 指定 IAM principal ARN
 --principal-role <role-arn>   # assumed role を role 単位で集計
@@ -106,7 +112,7 @@ npx bdusage users --all --since 30d
 
 | source | 表示 | 用途 |
 |--------|------|------|
-| `cur` | actual | IAM principal 別の正確な実コスト（CUR 2.0 + Athena） |
+| `cur` | actual | IAM principal 別の正確な実コスト（CUR 2.0。DuckDB または Athena） |
 | `ce` | actual-lite | CUR 未設定時の fallback（Cost Explorer API） |
 | `logs` | estimate | 今日の速報（`today` コマンド） |
 | `metrics` | estimate/volume | モデル別全体傾向（principal 別不可） |
@@ -120,15 +126,22 @@ npx bdusage users --all --since 30d
 IAM principal 単位の実コストには **CUR 2.0** が必要です。
 
 1. AWS Data Exports / CUR 2.0 を有効化（`INCLUDE_IAM_PRINCIPAL_DATA=true` 推奨）
-2. Athena で CUR テーブルをクエリ可能にする
-3. `~/.config/bdusage/config.toml` に database / table / workgroup を設定
+2. **DuckDB（推奨）**: CUR Parquet の S3 パスを指定するか、**Athena**: Glue/Athena テーブルを設定
+3. `~/.config/bdusage/config.toml` に backend を設定
 
 ```toml
 [aws]
 profile = "default"
 region = "ap-northeast-1"
 
-[athena]
+[cur]
+engine = "auto"
+
+[cur.duckdb]
+files = "s3://my-cur-bucket/export/**/*.parquet"
+s3_region = "ap-northeast-1"
+
+[cur.athena]
 database = "cur"
 table = "cost_and_usage_report"
 workgroup = "primary"
@@ -137,6 +150,8 @@ output_location = "s3://my-athena-query-results/bdusage/"
 [logs]
 log_group = "/aws/bedrock/modelinvocations"
 ```
+
+旧 `[athena]` セクションも互換読み込みされます。レポートには `source: CUR 2.0 actual` と `engine: DuckDB direct Parquet`（または Athena）が表示されます。
 
 ### CloudWatch Logs（`today --source logs`）
 
@@ -163,8 +178,9 @@ npx bdusage doctor
 ### summary
 
 ```text
-bdusage v0.1.0
+bdusage v0.3.1
 source: CUR 2.0 actual
+engine: DuckDB direct Parquet
 profile: default
 principal: arn:aws:sts::123456789012:assumed-role/BedrockDeveloper/alice@example.com
 period: 2026-06-01..2026-06-02

@@ -14,8 +14,10 @@ function mockCtx(overrides: Partial<CommandContext> = {}): CommandContext {
         top_model: null,
       },
     ]),
+    fetchWeekly: vi.fn(),
     fetchMonthly: vi.fn(),
     fetchModels: vi.fn(),
+    fetchUsers: vi.fn(),
     fetchBillingFreshness: vi.fn().mockResolvedValue({ status: "partial", latest: "2026-06-01" }),
   };
   return {

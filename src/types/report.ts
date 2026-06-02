@@ -1,3 +1,4 @@
+import type { ResolvedCurEngine } from "./engine.js";
 import type { PrincipalFilter } from "./principal.js";
 import type { ResolvedSourceName } from "./source.js";
 
@@ -11,6 +12,8 @@ export interface ReportMeta {
   version: string;
   source: ResolvedSourceName;
   sourceLabel: string;
+  engine?: ResolvedCurEngine;
+  engineLabel?: string;
   profile: string;
   region: string;
   principal: PrincipalFilter;
@@ -37,6 +40,21 @@ export interface DailyRow {
 
 export interface MonthlyRow {
   month: string;
+  cost: number;
+  tokens: TokenTotals;
+  top_model: string | null;
+}
+
+export interface WeeklyRow {
+  week_start: string;
+  week_end: string;
+  cost: number;
+  tokens: TokenTotals;
+  top_model: string | null;
+}
+
+export interface UserRow {
+  principal: string;
   cost: number;
   tokens: TokenTotals;
   top_model: string | null;

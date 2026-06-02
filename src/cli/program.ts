@@ -5,9 +5,16 @@ import { runModels } from "../commands/models.js";
 import { runMonthly } from "../commands/monthly.js";
 import { runSummary } from "../commands/summary.js";
 import { runToday } from "../commands/today.js";
+import { runUsers } from "../commands/users.js";
+import { runWeekly } from "../commands/weekly.js";
 import { runWhoami } from "../commands/whoami.js";
 import { TOOL_NAME, VERSION } from "../version.js";
-import { buildCommandContext, type GlobalOptions, mapCliError } from "./context.js";
+import {
+  buildCommandContext,
+  type GlobalOptions,
+  mapCliError,
+  normalizeCurEngine,
+} from "./context.js";
 
 type CommandRunner = (ctx: Awaited<ReturnType<typeof buildCommandContext>>) => Promise<string>;
 
@@ -16,6 +23,11 @@ function attachGlobalOptions(cmd: Command): Command {
     .option("--profile <name>", "AWS profile for API calls")
     .option("--region <region>", "AWS region for API calls")
     .option("--source <name>", "Data source (cur|ce|logs|auto)", "auto")
+    .option(
+      "--cur-engine <name>",
+      "CUR backend (auto|duckdb|athena); default reads config cur.engine",
+      "auto",
+    )
     .option("--principal <arn>", "Filter by IAM principal ARN")
     .option("--principal-role <roleArn>", "Aggregate assumed-role sessions by role ARN")
     .option("--principal-tag <key=value>", "Filter by cost allocation tag (--source ce)")
@@ -36,6 +48,7 @@ function readGlobalOptions(cmd: Command): GlobalOptions {
     profile?: string;
     region?: string;
     source?: string;
+    curEngine?: string;
     principal?: string;
     principalRole?: string;
     principalTag?: string;
@@ -50,6 +63,7 @@ function readGlobalOptions(cmd: Command): GlobalOptions {
 
   const base: GlobalOptions = {
     source: normalizeSource(opts.source ?? "auto"),
+    curEngine: normalizeCurEngine(opts.curEngine ?? "auto"),
     allPrincipals: Boolean(opts.all),
     json: Boolean(opts.json),
     csv: Boolean(opts.csv),
@@ -118,8 +132,10 @@ export function createProgram(): Command {
 
   runCmd("summary", "Monthly summary (default)", runSummary);
   runCmd("daily", "Daily usage and cost from CUR", runDaily);
+  runCmd("weekly", "Weekly usage and cost (ISO week, Monday start)", runWeekly);
   runCmd("monthly", "Monthly usage and cost from CUR", runMonthly);
   runCmd("models", "Per-model usage and cost from CUR", runModels);
+  runCmd("users", "IAM principal cost ranking (requires --all and --source cur)", runUsers);
   runCmd("whoami", "Show AWS identity and config", runWhoami);
   runCmd("today", "Today's Bedrock usage estimate (requires --source logs)", runToday);
   runCmd("doctor", "Validate CUR / Athena / Logs setup", runDoctor);
