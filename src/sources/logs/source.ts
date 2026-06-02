@@ -60,11 +60,15 @@ export class LogsSource implements EstimateSource {
     modelRows: ReturnType<typeof parseModelUsageRows>,
     region: string,
   ): Promise<number | null> {
+    const ratesList = await Promise.all(
+      modelRows.map((row) => this.pricing.getModelRates(row.modelId, region)),
+    );
     let total = 0;
     let priced = false;
-    for (const row of modelRows) {
-      const rates = await this.pricing.getModelRates(row.modelId, region);
-      if (!rates) {
+    for (let i = 0; i < modelRows.length; i++) {
+      const rates = ratesList[i];
+      const row = modelRows[i];
+      if (!rates || !row) {
         continue;
       }
       priced = true;

@@ -44,14 +44,24 @@ describe("CurDuckDbSource", () => {
     ]);
     await source.fetchModels(principal, range);
     vi.mocked(executor.executeQuery).mockResolvedValueOnce([{ latest_usage: null }]);
-    const unknown = await source.fetchBillingFreshness(principal);
+    const unknown = await source.fetchBillingFreshness(principal, range);
     expect(unknown.status).toBe("unknown");
 
     vi.mocked(executor.executeQuery).mockResolvedValueOnce([
       { latest_usage: "2026-06-01 00:00:00.000" },
     ]);
-    const billing = await source.fetchBillingFreshness(principal);
+    const billing = await source.fetchBillingFreshness(principal, range);
     expect(billing.status).toBe("partial");
     expect(executor.executeQuery).toHaveBeenCalled();
+  });
+
+  it("disposes duckdb executor", async () => {
+    const close = vi.fn();
+    const source = new CurDuckDbSource(
+      { executeQuery: vi.fn().mockResolvedValue([]), close },
+      config,
+    );
+    await source.dispose();
+    expect(close).toHaveBeenCalled();
   });
 });

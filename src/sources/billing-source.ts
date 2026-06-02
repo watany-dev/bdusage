@@ -10,6 +10,7 @@ import type {
 } from "../types/report.js";
 import type { ResolvedSourceName } from "../types/source.js";
 import type { DateRange } from "../util/dates.js";
+import type { BillingFreshness } from "./cur/freshness.js";
 
 export interface BillingSource {
   readonly resolved: ResolvedSourceName;
@@ -18,10 +19,17 @@ export interface BillingSource {
   fetchMonthly(principal: PrincipalFilter, range: DateRange): Promise<MonthlyRow[]>;
   fetchModels(principal: PrincipalFilter, range: DateRange): Promise<ModelRow[]>;
   fetchUsers(range: DateRange): Promise<UserRow[]>;
-  fetchBillingFreshness(principal: PrincipalFilter): Promise<{
+  fetchBillingFreshness(
+    principal: PrincipalFilter,
+    range?: DateRange,
+  ): Promise<{
     status: BillingDataStatus;
     latest: string | null;
   }>;
+  /** Freshness from the most recent ranged fetch (CUR sources only). */
+  peekBillingFreshness?(): BillingFreshness | null;
+  /** Release DuckDB sessions and similar resources. */
+  dispose?(): Promise<void>;
 }
 
 export interface CurBillingSource extends BillingSource {

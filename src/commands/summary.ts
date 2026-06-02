@@ -23,10 +23,14 @@ export async function runSummary(ctx: CommandContext): Promise<string> {
     until: parseUntil(undefined),
   };
 
-  const [monthlyRows, dailyRows, freshness] = await Promise.all([
-    billing.fetchMonthly(principal, monthRange),
+  const monthlyRows = await billing.fetchMonthly(principal, monthRange);
+  const freshness =
+    billing.peekBillingFreshness?.() ??
+    (await billing.fetchBillingFreshness(principal, monthRange));
+
+  const [dailyRows, modelRows] = await Promise.all([
     billing.fetchDaily(principal, dayRange),
-    billing.fetchBillingFreshness(principal),
+    billing.fetchModels(principal, monthRange),
   ]);
 
   const thisMonth = monthlyRows.reduce((sum, row) => sum + row.cost, 0);
@@ -41,8 +45,6 @@ export async function runSummary(ctx: CommandContext): Promise<string> {
       topModel = row.top_model;
     }
   }
-
-  const modelRows = await billing.fetchModels(principal, monthRange);
   const driverCosts = new Map<string, number>();
   for (const row of modelRows) {
     for (const usageType of row.usage_types) {
