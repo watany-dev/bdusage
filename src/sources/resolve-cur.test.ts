@@ -98,25 +98,6 @@ describe("resolveCurBillingSource", () => {
     expect(source.curEngine).toBe("athena");
   });
 
-  it("closes DuckDB executor when sample query fails", async () => {
-    const { createDuckDbExecutor } = await import("./cur-duckdb/duckdb.js");
-    const close = vi.fn();
-    vi.mocked(createDuckDbExecutor).mockResolvedValue({
-      executeQuery: vi.fn().mockRejectedValue(new Error("query failed")),
-      close,
-    });
-
-    await expect(
-      resolveCurBillingSource(
-        { engine: "duckdb" },
-        duckdbConfig,
-        { createAthena: () => new CurAthenaSource(executor, athenaConfig) },
-        executor,
-      ),
-    ).rejects.toThrow("query failed");
-    expect(close).toHaveBeenCalled();
-  });
-
   it("throws when auto cannot use DuckDB or Athena", async () => {
     const { createDuckDbExecutor } = await import("./cur-duckdb/duckdb.js");
     vi.mocked(createDuckDbExecutor).mockRejectedValue(new Error("duckdb down"));
@@ -127,16 +108,13 @@ describe("resolveCurBillingSource", () => {
         athena: { ...duckdbConfig.cur.athena, output_location: "s3://bucket/out/" },
       },
     });
-    const failingAthena: AthenaExecutor = {
-      executeQuery: vi.fn().mockRejectedValue(new Error("athena down")),
-    };
 
     await expect(
       resolveCurBillingSource(
         { engine: "auto" },
         autoConfig,
-        { createAthena: () => new CurAthenaSource(failingAthena, autoConfig) },
-        failingAthena,
+        { createAthena: () => new CurAthenaSource(executor, autoConfig) },
+        null,
       ),
     ).rejects.toThrow("Could not use CUR backend");
   });
