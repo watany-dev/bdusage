@@ -1,0 +1,35 @@
+---
+description: TypeScript source conventions for bdusage src/
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# TypeScript rules
+
+## Layout
+
+- `src/cli.ts` — thin entry; delegate to `src/cli/run.ts`.
+- `src/commands.ts` — single source of truth for command names; update tests when adding commands.
+- `src/version.ts` — `TOOL_NAME` and `VERSION`; bump `package.json` on release.
+
+## Imports
+
+- Use `import … from "./foo.js"` (`.js` suffix for ESM resolution).
+- Export public API from `src/index.ts` when adding library surface.
+
+## Tests
+
+- Colocate tests as `*.test.ts` next to the module under test.
+- Prefer testing pure functions and CLI helpers over full AWS integration in unit tests.
+- Mock AWS SDK / Athena at boundaries; do not require live AWS credentials in CI.
+
+## AWS integration (when implementing)
+
+- Read credentials/profile from CLI flags and `~/.config/bdusage/config.toml` per SPEC.
+- Athena queries: filter `line_item_product_code = 'AmazonBedrock'`; principal filter via `line_item_iam_principal`.
+- Surface actionable errors; route setup problems to `doctor` messaging where SPEC defines it.
+
+## Build
+
+- Production bundle via `build.ts` (Bun.build); declarations via `tsc --emitDeclarationOnly`.
+- CLI artifact: `dist/cli.mjs` with shebang banner.

@@ -1,0 +1,38 @@
+---
+description: Documentation consistency for README, SPEC, ROADMAP, and ADRs
+globs: docs/**/*,README.md,CHANGELOG.md,AGENTS.md
+alwaysApply: false
+---
+
+# Documentation rules
+
+## Authority
+
+- [docs/SPEC.md](mdc:docs/SPEC.md) is the source of truth for behavior, AWS integration, and security.
+- [docs/ROADMAP.md](mdc:docs/ROADMAP.md) defines what ships in each version; do not mark features done in ROADMAP until implemented.
+- [README.md](mdc:README.md) is the user-facing summary; keep command tables aligned with `src/commands.ts` and SPEC §9.
+
+## When to update
+
+- CLI flags, commands, or default output → update README + SPEC (+ ROADMAP if version scope changes).
+- New architectural decision after design review → add `docs/adr/NNNN-slug.md` (sequential numbering).
+
+## Terminology (consistent across docs)
+
+| Term | Meaning |
+|------|---------|
+| actual | Billing-backed cost (CUR, CE) |
+| estimate | Monitoring / price-list based, not finalized billing |
+| principal | IAM entity ARN in CUR `line_item_iam_principal` |
+| source | CLI `--source` or report header data origin |
+
+## Language
+
+- README, SPEC, ROADMAP, ADRs: Japanese.
+- AGENTS.md: English (agent instructions).
+- Code identifiers and CLI flags: English.
+
+## Avoid
+
+- Documenting v0.2+ commands as shipped when only listed in ROADMAP.
+- Promising security boundaries for `--principal self` beyond SPEC (UX filter in direct mode).

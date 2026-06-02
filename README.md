@@ -176,6 +176,16 @@ bun run test
 bun run build
 ```
 
+### Cursor / エージェント
+
+| パス | 内容 |
+|------|------|
+| [AGENTS.md](./AGENTS.md) | エージェント共通のプロジェクト概要・CI・ドメインルール |
+| `.cursor/rules/` | Cursor プロジェクトルール（常時 / TypeScript / ドキュメント） |
+| `.cursor/skills/` | スキル（`update-docs`, `update-design`, `update-plan`, `grill-me`） |
+
+リポジトリルートの `Skills` は `.cursor/skills` へのシンボリックリンクです（[zghalint](https://github.com/watany-dev/zghalint) と同様の構成）。
+
 ## ドキュメント
 
 | ドキュメント | 内容 |
