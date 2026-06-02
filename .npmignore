@@ -1,0 +1,16 @@
+src/
+tests/
+.github/
+docs/
+*.test.ts
+build.ts
+tsconfig.json
+vitest.config.ts
+biome.json
+knip.json
+.oxlintrc.json
+lefthook.yml
+bunfig.toml
+bun.lock
+*.md
+!README.md
