@@ -5,6 +5,8 @@ import { runModels } from "../commands/models.js";
 import { runMonthly } from "../commands/monthly.js";
 import { runSummary } from "../commands/summary.js";
 import { runToday } from "../commands/today.js";
+import { runUsers } from "../commands/users.js";
+import { runWeekly } from "../commands/weekly.js";
 import { runWhoami } from "../commands/whoami.js";
 import { TOOL_NAME, VERSION } from "../version.js";
 import { buildCommandContext, type GlobalOptions, mapCliError } from "./context.js";
@@ -118,8 +120,10 @@ export function createProgram(): Command {
 
   runCmd("summary", "Monthly summary (default)", runSummary);
   runCmd("daily", "Daily usage and cost from CUR", runDaily);
+  runCmd("weekly", "Weekly usage and cost (ISO week, Monday start)", runWeekly);
   runCmd("monthly", "Monthly usage and cost from CUR", runMonthly);
   runCmd("models", "Per-model usage and cost from CUR", runModels);
+  runCmd("users", "IAM principal cost ranking (requires --all and --source cur)", runUsers);
   runCmd("whoami", "Show AWS identity and config", runWhoami);
   runCmd("today", "Today's Bedrock usage estimate (requires --source logs)", runToday);
   runCmd("doctor", "Validate CUR / Athena / Logs setup", runDoctor);

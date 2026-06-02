@@ -27,9 +27,13 @@ npx bdusage
 # 日次レポート（デフォルト用途）
 npx bdusage daily
 
-# 月次・モデル別
+# 週次・月次・モデル別
+npx bdusage weekly --since 90d
 npx bdusage monthly
 npx bdusage models
+
+# 管理者: IAM principal 別ランキング（--all と CUR が必要）
+npx bdusage users --all --since 30d
 
 # 認証情報とレポート対象 principal の確認
 npx bdusage whoami
@@ -47,11 +51,12 @@ npx bdusage today --source logs
 |----------|------|------|
 | `bdusage` / `summary` | 今月合計・昨日・上位モデル等 | ✅ |
 | `daily` | 日次の利用料金 | ✅ |
+| `weekly` | 週次の利用料金（ISO 週・月曜始まり UTC） | ✅ |
 | `monthly` | 月次の利用料金 | ✅ |
 | `models` | モデル別の使用量・コスト | ✅ |
 | `whoami` | 現在の AWS 認証と principal 解決結果 | ✅ |
 | `doctor` | 設定・権限・CUR・Athena の診断 | ✅ |
-| `users --all` | principal / tag 別ランキング（管理者向け） | 計画 |
+| `users --all` | IAM principal 別ランキング（管理者向け・`--source cur`） | ✅ |
 | `cache` | prompt cache read/write の内訳 | 計画 |
 | `today --source logs` | 今日の概算（CloudWatch Logs） | ✅ |
 

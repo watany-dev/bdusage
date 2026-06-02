@@ -8,7 +8,7 @@ describe("runCli", () => {
   });
 
   it("prints version line", () => {
-    expect(formatVersionLine()).toBe("bdusage v0.3.0");
+    expect(formatVersionLine()).toBe("bdusage v0.3.1");
   });
 
   it("includes commands in help", () => {
@@ -20,7 +20,7 @@ describe("runCli", () => {
   it("exits 0 for --version", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     expect(runCli(["node", "bdusage", "--version"])).toBe(0);
-    expect(log).toHaveBeenCalledWith("bdusage v0.3.0");
+    expect(log).toHaveBeenCalledWith("bdusage v0.3.1");
   });
 
   it("exits 0 for --help", () => {

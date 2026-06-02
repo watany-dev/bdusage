@@ -42,6 +42,21 @@ export interface MonthlyRow {
   top_model: string | null;
 }
 
+export interface WeeklyRow {
+  week_start: string;
+  week_end: string;
+  cost: number;
+  tokens: TokenTotals;
+  top_model: string | null;
+}
+
+export interface UserRow {
+  principal: string;
+  cost: number;
+  tokens: TokenTotals;
+  top_model: string | null;
+}
+
 export interface ModelRow {
   model: string;
   cost: number;

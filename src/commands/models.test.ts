@@ -9,7 +9,9 @@ describe("runModels", () => {
       const billing = {
         resolved: "cur" as const,
         fetchDaily: vi.fn(),
+        fetchWeekly: vi.fn(),
         fetchMonthly: vi.fn(),
+        fetchUsers: vi.fn(),
         fetchModels: vi.fn().mockResolvedValue([
           {
             model: "Claude",

@@ -5,6 +5,8 @@ import {
   renderModelsTable,
   renderMonthlyTable,
   renderSummaryTable,
+  renderUsersTable,
+  renderWeeklyTable,
 } from "./table.js";
 
 const meta: ReportMeta = {
@@ -56,6 +58,30 @@ describe("table renderers", () => {
         },
       ]),
     ).toContain("Claude Sonnet");
+  });
+
+  it("renderWeeklyTable and renderUsersTable", () => {
+    expect(
+      renderWeeklyTable(meta, [
+        {
+          week_start: "2026-06-01",
+          week_end: "2026-06-07",
+          cost: 1,
+          tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+          top_model: "M",
+        },
+      ]),
+    ).toContain("2026-06-01..2026-06-07");
+    expect(
+      renderUsersTable(meta, [
+        {
+          principal: "arn:aws:sts::1:assumed-role/BedrockDeveloper/alice",
+          cost: 2,
+          tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+          top_model: null,
+        },
+      ]),
+    ).toContain("BedrockDeveloper/alice");
   });
 
   it("renderSummaryTable", () => {

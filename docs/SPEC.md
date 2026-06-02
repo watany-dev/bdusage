@@ -137,7 +137,8 @@ v0.1 で実装しない: CloudWatch Logs estimate、Cost Explorer fallback、Met
 | `models` | モデル別の使用量・コスト | ✅ |
 | `whoami` | 現在の AWS 認証と principal 解決結果 | ✅ |
 | `doctor` | 設定・権限・CUR・Athena の診断 | ✅ |
-| `users --all` | principal / tag 別ランキング（管理者向け） | 計画 |
+| `weekly` | 週次の利用料金（ISO 週・月曜始まり） | ✅ |
+| `users --all` | IAM principal 別コストランキング（管理者向け・CUR のみ） | ✅ |
 | `cache` | prompt cache read/write の内訳 | 計画 |
 | `today --source logs` | 今日の概算（CloudWatch Logs） | ✅ |
 
@@ -531,13 +532,23 @@ actual cost は CUR の cost 列のみを使用する。独自単価計算は行
 
 ## 21. 将来コマンドと拡張
 
-### 21.1 users（計画）
+### 21.1 users
 
 ```bash
 npx bdusage users --all --since 30d
 ```
 
-principal / tag 別ランキング。管理者向け。
+IAM principal 別の Bedrock コストランキング（コスト降順）。**`--all` 必須**。`--source cur`（または `auto` が cur に解決されること）が必要。Cost Explorer では IAM principal 単位のグループ化ができないため、`--source ce` では利用不可。
+
+`--principal` / `--principal-role` / `--principal-tag` は指定不可（全 principal を対象とするため）。
+
+### 21.1a weekly
+
+```bash
+npx bdusage weekly --since 90d
+```
+
+週次集計。週の境界は **UTC・ISO 週（月曜始まり）**。CUR では Athena で週次グループ化、CE では日次取得後にクライアントでロールアップ。
 
 ### 21.2 cache（計画）
 
@@ -681,7 +692,7 @@ v0.1 の受け入れ条件:
 | デフォルト cost metric | `net_unblended` vs `unblended` | FinOps ポリシーに依存 |
 | bedrock-runtime / bedrock-mantle | 区別範囲 | usage type パース設計に影響 |
 | Organizations 複数 account | 表示粒度 | account 列グループ vs 合算 |
-| weekly レポート | ccusage 互換で追加するか | v0.5+ 候補 |
+| weekly 週始まり | 月曜固定（UTC） | 将来 `--week-start` で変更するか検討 |
 
 ## 27. 参考
 
