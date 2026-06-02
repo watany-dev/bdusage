@@ -166,7 +166,7 @@ describe("runDoctorChecks", () => {
     expect(checks.find((c) => c.name === "logs_insights_query")?.status).toBe("warn");
   });
 
-  it("includes logs principal filter guidance", async () => {
+  it("includes logs principal filter guidance in insights check", async () => {
     const { getCallerIdentity } = await import("../aws/sts.js");
     vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
 
@@ -175,18 +175,19 @@ describe("runDoctorChecks", () => {
       "/tmp/config.toml",
       null,
     );
-    expect(checks.find((c) => c.name === "logs_insights_query")?.status).toBe("ok");
-    expect(checks.find((c) => c.name === "logs_principal_filter")?.message).toContain(
-      "identity.arn",
-    );
+    expect(checks.find((c) => c.name === "logs_insights_query")?.message).toContain("identity.arn");
+    expect(checks.some((c) => c.name === "logs_principal_filter")).toBe(false);
   });
 
-  it("includes Cost Explorer tag guidance", async () => {
+  it("includes Cost Explorer tag guidance in ce check", async () => {
     const { getCallerIdentity } = await import("../aws/sts.js");
     vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
 
     const checks = await runDoctorChecks(config, "/tmp/config.toml", null);
-    expect(checks.find((c) => c.name === "ce_principal_tag")?.message).toContain("--principal-tag");
+    expect(checks.find((c) => c.name === "ce_bedrock_access")?.message).toContain(
+      "--principal-tag",
+    );
+    expect(checks.some((c) => c.name === "ce_principal_tag")).toBe(false);
   });
 
   it("warns on Cost Explorer access failure", async () => {

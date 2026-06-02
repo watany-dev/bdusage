@@ -6,6 +6,7 @@ import type {
   ReportMeta,
   SummaryTotals,
   TodayReport,
+  TokenTotals,
   UserRow,
   WeeklyRow,
 } from "../types/report.js";
@@ -29,20 +30,35 @@ function headerBlock(meta: ReportMeta): string[] {
   return lines;
 }
 
-export function renderDailyTable(meta: ReportMeta, rows: DailyRow[]): string {
+type UsageRow = {
+  cost: number;
+  tokens: TokenTotals;
+  top_model: string | null;
+};
+
+function renderUsageTable(
+  meta: ReportMeta,
+  periodLabel: string,
+  rows: Array<{ label: string } & UsageRow>,
+  options: { showTotal: boolean },
+): string {
   const lines = [...headerBlock(meta), ""];
-  lines.push(padRow(["Date", "Cost", "Input", "Output", "Cache Read", "Cache Write", "Top Model"]));
+  lines.push(
+    padRow([periodLabel, "Cost", "Input", "Output", "Cache Read", "Cache Write", "Top Model"]),
+  );
   let totalCost = 0;
-  const totalTokens = { input: 0, output: 0, cache_read: 0, cache_write: 0 };
+  const totalTokens: TokenTotals = { input: 0, output: 0, cache_read: 0, cache_write: 0 };
   for (const row of rows) {
-    totalCost += row.cost;
-    totalTokens.input += row.tokens.input;
-    totalTokens.output += row.tokens.output;
-    totalTokens.cache_read += row.tokens.cache_read;
-    totalTokens.cache_write += row.tokens.cache_write;
+    if (options.showTotal) {
+      totalCost += row.cost;
+      totalTokens.input += row.tokens.input;
+      totalTokens.output += row.tokens.output;
+      totalTokens.cache_read += row.tokens.cache_read;
+      totalTokens.cache_write += row.tokens.cache_write;
+    }
     lines.push(
       padRow([
-        row.date,
+        row.label,
         formatUsd(row.cost),
         formatTokens(row.tokens.input),
         formatTokens(row.tokens.output),
@@ -52,55 +68,43 @@ export function renderDailyTable(meta: ReportMeta, rows: DailyRow[]): string {
       ]),
     );
   }
-  lines.push(
-    padRow([
-      "Total",
-      formatUsd(totalCost),
-      formatTokens(totalTokens.input),
-      formatTokens(totalTokens.output),
-      formatTokens(totalTokens.cache_read),
-      formatTokens(totalTokens.cache_write),
-      "",
-    ]),
-  );
+  if (options.showTotal) {
+    lines.push(
+      padRow([
+        "Total",
+        formatUsd(totalCost),
+        formatTokens(totalTokens.input),
+        formatTokens(totalTokens.output),
+        formatTokens(totalTokens.cache_read),
+        formatTokens(totalTokens.cache_write),
+        "",
+      ]),
+    );
+  }
   return `${lines.join("\n")}\n`;
 }
 
-export function renderWeeklyTable(meta: ReportMeta, rows: WeeklyRow[]): string {
-  const lines = [...headerBlock(meta), ""];
-  lines.push(padRow(["Week", "Cost", "Input", "Output", "Cache Read", "Cache Write", "Top Model"]));
-  let totalCost = 0;
-  const totalTokens = { input: 0, output: 0, cache_read: 0, cache_write: 0 };
-  for (const row of rows) {
-    totalCost += row.cost;
-    totalTokens.input += row.tokens.input;
-    totalTokens.output += row.tokens.output;
-    totalTokens.cache_read += row.tokens.cache_read;
-    totalTokens.cache_write += row.tokens.cache_write;
-    lines.push(
-      padRow([
-        formatWeekLabel(row.week_start, row.week_end),
-        formatUsd(row.cost),
-        formatTokens(row.tokens.input),
-        formatTokens(row.tokens.output),
-        formatTokens(row.tokens.cache_read),
-        formatTokens(row.tokens.cache_write),
-        row.top_model ?? "-",
-      ]),
-    );
-  }
-  lines.push(
-    padRow([
-      "Total",
-      formatUsd(totalCost),
-      formatTokens(totalTokens.input),
-      formatTokens(totalTokens.output),
-      formatTokens(totalTokens.cache_read),
-      formatTokens(totalTokens.cache_write),
-      "",
-    ]),
+export function renderDailyTable(meta: ReportMeta, rows: DailyRow[]): string {
+  return renderUsageTable(
+    meta,
+    "Date",
+    rows.map((row) => ({ label: row.date, ...row })),
+    { showTotal: true },
   );
-  return `${lines.join("\n")}\n`;
+}
+
+export function renderWeeklyTable(meta: ReportMeta, rows: WeeklyRow[]): string {
+  return renderUsageTable(
+    meta,
+    "Week",
+    rows.map((row) => ({
+      label: formatWeekLabel(row.week_start, row.week_end),
+      cost: row.cost,
+      tokens: row.tokens,
+      top_model: row.top_model,
+    })),
+    { showTotal: true },
+  );
 }
 
 export function renderUsersTable(meta: ReportMeta, rows: UserRow[]): string {
@@ -125,24 +129,12 @@ export function renderUsersTable(meta: ReportMeta, rows: UserRow[]): string {
 }
 
 export function renderMonthlyTable(meta: ReportMeta, rows: MonthlyRow[]): string {
-  const lines = [...headerBlock(meta), ""];
-  lines.push(
-    padRow(["Month", "Cost", "Input", "Output", "Cache Read", "Cache Write", "Top Model"]),
+  return renderUsageTable(
+    meta,
+    "Month",
+    rows.map((row) => ({ label: row.month, ...row })),
+    { showTotal: false },
   );
-  for (const row of rows) {
-    lines.push(
-      padRow([
-        row.month,
-        formatUsd(row.cost),
-        formatTokens(row.tokens.input),
-        formatTokens(row.tokens.output),
-        formatTokens(row.tokens.cache_read),
-        formatTokens(row.tokens.cache_write),
-        row.top_model ?? "-",
-      ]),
-    );
-  }
-  return `${lines.join("\n")}\n`;
 }
 
 export function renderModelsTable(meta: ReportMeta, rows: ModelRow[]): string {
