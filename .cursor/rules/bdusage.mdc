@@ -1,0 +1,35 @@
+---
+description: bdusage core project rules — actual vs estimate, v0.1 scope, CI, security
+alwaysApply: true
+---
+
+# bdusage project rules
+
+## Product invariants
+
+- Never mix **actual** (CUR / Cost Explorer billing) and **estimate** (CloudWatch Logs / Metrics) amounts in the same report row or total.
+- Every cost report must print a `source:` line (e.g. `source: CUR 2.0 actual`).
+- Actual costs use AWS billing data only; do not recompute actual totals from model list prices.
+- Do not fetch, store, or display Bedrock invocation log bodies.
+
+## Version scope
+
+- Default implementation target: **v0.1** (CUR + Athena, commands in `src/commands.ts`).
+- Do not add v0.2+ features (`--source ce`, `today --source logs`, managed mode) unless the task explicitly requests a later version.
+- Check [docs/ROADMAP.md](mdc:docs/ROADMAP.md) and [docs/SPEC.md](mdc:docs/SPEC.md) before changing CLI options or output format.
+
+## Completion checklist
+
+Before finishing a code change, run `bun run ci` and fix all failures.
+
+## Code style
+
+- TypeScript ESM; use `.js` extensions in import specifiers.
+- Match existing tooling: oxlint, Biome, Vitest, knip — do not introduce ESLint/Prettier unless requested.
+- Keep diffs minimal; avoid unrelated refactors.
+
+## Communication
+
+- User-facing README: Japanese.
+- SPEC / ROADMAP / ADRs: Japanese unless the file is already English.
+- Do not end responses with open-ended "let me know if you want…" offers.
