@@ -20,6 +20,12 @@ interface RawUsageRow {
   usage_amount: number;
 }
 
+interface PeriodBucket {
+  cost: number;
+  tokens: TokenTotals;
+  models: Map<string, number>;
+}
+
 function parseNumber(value: string | null | undefined): number {
   if (value == null || value === "") {
     return 0;
@@ -28,21 +34,22 @@ function parseNumber(value: string | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-export function mapRawDailyRows(rows: RawUsageRow[]): DailyRow[] {
-  const byDate = new Map<
-    string,
-    { cost: number; tokens: TokenTotals; models: Map<string, number> }
-  >();
+function mapRawPeriodRows<TRow>(
+  rows: RawUsageRow[],
+  periodKey: (row: RawUsageRow) => string | undefined,
+  toRow: (key: string, bucket: PeriodBucket) => TRow,
+): TRow[] {
+  const byPeriod = new Map<string, PeriodBucket>();
 
   for (const row of rows) {
-    const date = row.usage_date;
-    if (!date) {
+    const key = periodKey(row);
+    if (!key) {
       continue;
     }
-    let bucket = byDate.get(date);
+    let bucket = byPeriod.get(key);
     if (!bucket) {
       bucket = { cost: 0, tokens: emptyTokenTotals(), models: new Map() };
-      byDate.set(date, bucket);
+      byPeriod.set(key, bucket);
     }
     bucket.cost += row.cost;
     addUsageAmount(bucket.tokens, row.usage_type, row.usage_amount);
@@ -50,14 +57,22 @@ export function mapRawDailyRows(rows: RawUsageRow[]): DailyRow[] {
     bucket.models.set(model, (bucket.models.get(model) ?? 0) + row.cost);
   }
 
-  return [...byDate.entries()]
+  return [...byPeriod.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, bucket]) => ({
+    .map(([key, bucket]) => toRow(key, bucket));
+}
+
+export function mapRawDailyRows(rows: RawUsageRow[]): DailyRow[] {
+  return mapRawPeriodRows(
+    rows,
+    (row) => row.usage_date,
+    (date, bucket) => ({
       date,
       cost: bucket.cost,
       tokens: bucket.tokens,
       top_model: pickTopModel(bucket.models),
-    }));
+    }),
+  );
 }
 
 /** Build weekly rows from daily-granularity raw rows (usage_date + usage_type). */
@@ -146,35 +161,16 @@ export function mapRawUserRows(rows: RawUsageRow[]): UserRow[] {
 }
 
 export function mapRawMonthlyRows(rows: RawUsageRow[]): MonthlyRow[] {
-  const byMonth = new Map<
-    string,
-    { cost: number; tokens: TokenTotals; models: Map<string, number> }
-  >();
-
-  for (const row of rows) {
-    const month = row.usage_month;
-    if (!month) {
-      continue;
-    }
-    let bucket = byMonth.get(month);
-    if (!bucket) {
-      bucket = { cost: 0, tokens: emptyTokenTotals(), models: new Map() };
-      byMonth.set(month, bucket);
-    }
-    bucket.cost += row.cost;
-    addUsageAmount(bucket.tokens, row.usage_type, row.usage_amount);
-    const model = normalizeModelName(row.usage_type);
-    bucket.models.set(model, (bucket.models.get(model) ?? 0) + row.cost);
-  }
-
-  return [...byMonth.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, bucket]) => ({
+  return mapRawPeriodRows(
+    rows,
+    (row) => row.usage_month,
+    (month, bucket) => ({
       month,
       cost: bucket.cost,
       tokens: bucket.tokens,
       top_model: pickTopModel(bucket.models),
-    }));
+    }),
+  );
 }
 
 export function mapRawModelRows(rows: RawUsageRow[]): ModelRow[] {

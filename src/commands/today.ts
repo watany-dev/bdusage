@@ -1,7 +1,7 @@
-import { type CommandContext, resolvePrincipalForEstimate } from "../cli/context.js";
+import type { CommandContext } from "../cli/context.js";
 import { renderTodayJson } from "../output/json.js";
 import { renderTodayTable } from "../output/table.js";
-import { todayUtc } from "../util/dates.js";
+import { addDays, todayUtc } from "../util/dates.js";
 import { buildEstimateReportMeta } from "./report-meta.js";
 
 export async function runToday(ctx: CommandContext): Promise<string> {
@@ -12,9 +12,9 @@ export async function runToday(ctx: CommandContext): Promise<string> {
   }
 
   const estimate = await ctx.createEstimateSource();
-  const principal = await resolvePrincipalForEstimate(ctx);
+  const principal = await ctx.resolvePrincipal();
   const day = todayUtc();
-  const range = { since: day, until: addDaysUtc(day, 1) };
+  const range = { since: day, until: addDays(day, 1) };
   const report = await estimate.fetchToday(principal, range);
   const meta = buildEstimateReportMeta(ctx, principal, range);
 
@@ -26,10 +26,4 @@ export async function runToday(ctx: CommandContext): Promise<string> {
     default:
       return renderTodayTable(meta, report);
   }
-}
-
-function addDaysUtc(isoDate: string, days: number): string {
-  const d = new Date(`${isoDate}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }

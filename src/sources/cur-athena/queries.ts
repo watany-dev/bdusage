@@ -2,11 +2,7 @@ import { costColumn } from "../../config/load.js";
 import type { BdusageConfig } from "../../config/schema.js";
 import type { PrincipalFilter } from "../../types/principal.js";
 import { principalFilterSql } from "../../types/principal.js";
-
-export interface DateRange {
-  since: string;
-  until: string;
-}
+import type { DateRange } from "../../util/dates.js";
 
 function baseWhere(config: BdusageConfig, principal: PrincipalFilter, range: DateRange): string {
   return `

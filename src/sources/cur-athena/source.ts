@@ -10,6 +10,7 @@ import type {
   UserRow,
   WeeklyRow,
 } from "../../types/report.js";
+import type { DateRange } from "../../util/dates.js";
 import type { CurBillingSource } from "../billing-source.js";
 import {
   athenaRowsToRaw,
@@ -21,7 +22,6 @@ import {
 } from "./aggregate.js";
 import {
   billingFreshnessQuery,
-  type DateRange,
   dailyQuery,
   modelsQuery,
   monthlyQuery,

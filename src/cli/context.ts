@@ -1,15 +1,10 @@
-import type { AthenaExecutor } from "../aws/athena.js";
-import { createAthenaClient, LiveAthenaExecutor } from "../aws/athena.js";
 import { createCloudWatchLogsClient, LiveCloudWatchLogsClient } from "../aws/cloudwatch-logs.js";
-import { createCostExplorerClient, LiveCostExplorerClient } from "../aws/cost-explorer.js";
 import { createPricingClient, LivePricingCatalog } from "../aws/pricing.js";
 import { getCallerIdentity } from "../aws/sts.js";
 import { ConfigError, loadConfigFile } from "../config/load.js";
 import { defaultConfigPath } from "../config/paths.js";
 import type { BdusageConfig } from "../config/schema.js";
 import type { BillingSource, CurBillingSource } from "../sources/billing-source.js";
-import { CeSource } from "../sources/ce/source.js";
-import { CurAthenaSource } from "../sources/cur-athena/source.js";
 import type { EstimateSource } from "../sources/estimate-source.js";
 import { LogsSource } from "../sources/logs/source.js";
 import { resolveBillingSource } from "../sources/resolve.js";
@@ -22,6 +17,7 @@ import type { OutputFormat } from "../types/report.js";
 import type { ResolvedSourceName, SourceName } from "../types/source.js";
 import { isSourceName } from "../types/source.js";
 import { VERSION } from "../version.js";
+import { createAthenaExecutor, createCeSource, createCurAthenaSource } from "./aws-sources.js";
 
 export interface GlobalOptions {
   profile?: string | undefined;
@@ -92,25 +88,21 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
     outputFormat,
     version: `bdusage v${VERSION}`,
     async createCurSource() {
-      const client = createAthenaClient(region, profile);
-      const athenaExecutor: AthenaExecutor = new LiveAthenaExecutor(client);
+      const executor = createAthenaExecutor(region, profile);
       const cur = await resolveCurBillingSource(
         { engine: curEngine },
         config,
         {
-          createAthena: () => new CurAthenaSource(athenaExecutor, config),
+          createAthena: () => createCurAthenaSource(executor, config),
         },
-        athenaExecutor,
+        executor,
       );
       ctx.resolvedSource = "cur";
       ctx.resolvedCurEngine = cur.curEngine;
       return cur;
     },
     async createBillingSource() {
-      const ce = new CeSource(
-        new LiveCostExplorerClient(createCostExplorerClient(region, profile)),
-        config,
-      );
+      const ce = createCeSource(region, profile, config);
       const billing = await resolveBillingSource(
         source,
         { curEngine },
@@ -177,10 +169,6 @@ export async function resolvePrincipalForBilling(
     assertCurPrincipalFilter(principal);
   }
   return principal;
-}
-
-export async function resolvePrincipalForEstimate(ctx: CommandContext): Promise<PrincipalFilter> {
-  return ctx.resolvePrincipal();
 }
 
 export function mapCliError(error: unknown): { message: string; exitCode: number } {

@@ -1,3 +1,4 @@
+import { CLI_REGISTERED_COMMANDS } from "../commands.js";
 import { TOOL_NAME, VERSION } from "../version.js";
 import { createProgram } from "./program.js";
 
@@ -14,7 +15,7 @@ export function formatHelpText(): string {
     "Usage:",
     `  npx ${TOOL_NAME} [command] [options]`,
     "",
-    "Commands: summary, daily, weekly, monthly, models, users, today, whoami, doctor",
+    `Commands: ${CLI_REGISTERED_COMMANDS.join(", ")}`,
     "",
     "  (no command)  Same as summary",
     "",
