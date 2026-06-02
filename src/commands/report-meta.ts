@@ -11,7 +11,7 @@ export function buildReportMeta(
   range: DateRange,
   billing?: { status: ReportMeta["billingDataStatus"]; latest: string | null },
 ): ReportMeta {
-  const source = ctx.options.source;
+  const source = ctx.resolvedSource ?? (ctx.options.source === "ce" ? "ce" : "cur");
   return {
     version: ctx.version,
     source,

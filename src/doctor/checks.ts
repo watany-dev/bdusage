@@ -1,7 +1,10 @@
 import type { AthenaExecutor } from "../aws/athena.js";
+import { createCostExplorerClient, LiveCostExplorerClient } from "../aws/cost-explorer.js";
 import { getCallerIdentity } from "../aws/sts.js";
 import type { BdusageConfig } from "../config/schema.js";
+import { buildCeFilter } from "../sources/ce/filters.js";
 import { iamPrincipalColumnCheckQuery, sampleBedrockQuery } from "../sources/cur/queries.js";
+import { todayUtc } from "../util/dates.js";
 
 type CheckStatus = "ok" | "fail" | "warn";
 
@@ -67,78 +70,126 @@ export async function runDoctorChecks(
       status: "warn",
       message: "Skipped live Athena checks (no executor)",
     });
-    return checks;
-  }
-
-  const { database, workgroup, output_location } = config.athena;
-  if (!output_location) {
-    return checks;
-  }
-
-  const baseInput = {
-    database,
-    workgroup,
-    outputLocation: output_location,
-  };
-
-  try {
-    await executor.executeQuery({
-      ...baseInput,
-      sql: sampleBedrockQuery(config),
-    });
-    checks.push({
-      name: "sample_bedrock_query",
-      status: "ok",
-      message: "Bedrock usage rows reachable",
-    });
-  } catch (error) {
-    checks.push({
-      name: "sample_bedrock_query",
-      status: "fail",
-      message: error instanceof Error ? error.message : String(error),
-      fix: "Verify Athena database/table and IAM permissions (SPEC §15).",
-    });
-  }
-
-  try {
-    const rows = await executor.executeQuery({
-      ...baseInput,
-      sql: iamPrincipalColumnCheckQuery(config),
-    });
-    if (rows.length === 0) {
+  } else {
+    const { database, workgroup, output_location } = config.athena;
+    if (!output_location) {
       checks.push({
-        name: "cur_iam_principal_column",
-        status: "fail",
-        message: "line_item_iam_principal column not found or always NULL",
-        fix: IAM_PRINCIPAL_FIX,
+        name: "athena_query",
+        status: "warn",
+        message: "Skipped live Athena checks (output_location not set)",
       });
     } else {
-      checks.push({
-        name: "cur_iam_principal_column",
-        status: "ok",
-        message: "IAM principal data present in CUR",
-      });
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("line_item_iam_principal")) {
-      checks.push({
-        name: "cur_iam_principal_column",
-        status: "fail",
-        message: "line_item_iam_principal column not found or always NULL",
-        fix: IAM_PRINCIPAL_FIX,
-      });
-    } else {
-      checks.push({
-        name: "cur_iam_principal_column",
-        status: "fail",
-        message,
-        fix: IAM_PRINCIPAL_FIX,
-      });
+      const baseInput = {
+        database,
+        workgroup,
+        outputLocation: output_location,
+      };
+
+      try {
+        await executor.executeQuery({
+          ...baseInput,
+          sql: sampleBedrockQuery(config),
+        });
+        checks.push({
+          name: "sample_bedrock_query",
+          status: "ok",
+          message: "Bedrock usage rows reachable",
+        });
+      } catch (error) {
+        checks.push({
+          name: "sample_bedrock_query",
+          status: "fail",
+          message: error instanceof Error ? error.message : String(error),
+          fix: "Verify Athena database/table and IAM permissions (SPEC §15).",
+        });
+      }
+
+      try {
+        const rows = await executor.executeQuery({
+          ...baseInput,
+          sql: iamPrincipalColumnCheckQuery(config),
+        });
+        if (rows.length === 0) {
+          checks.push({
+            name: "cur_iam_principal_column",
+            status: "fail",
+            message: "line_item_iam_principal column not found or always NULL",
+            fix: IAM_PRINCIPAL_FIX,
+          });
+        } else {
+          checks.push({
+            name: "cur_iam_principal_column",
+            status: "ok",
+            message: "IAM principal data present in CUR",
+          });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("line_item_iam_principal")) {
+          checks.push({
+            name: "cur_iam_principal_column",
+            status: "fail",
+            message: "line_item_iam_principal column not found or always NULL",
+            fix: IAM_PRINCIPAL_FIX,
+          });
+        } else {
+          checks.push({
+            name: "cur_iam_principal_column",
+            status: "fail",
+            message,
+            fix: IAM_PRINCIPAL_FIX,
+          });
+        }
+      }
     }
   }
+
+  const region = config.aws.region ?? "us-east-1";
+  const profile = config.aws.profile;
+  await appendCeChecks(checks, region, profile);
 
   return checks;
+}
+
+async function appendCeChecks(
+  checks: DoctorCheck[],
+  region: string,
+  profile?: string,
+): Promise<void> {
+  const client = new LiveCostExplorerClient(createCostExplorerClient(region, profile));
+  const end = todayUtc();
+  const startDate = new Date(`${end}T00:00:00Z`);
+  startDate.setUTCDate(startDate.getUTCDate() - 7);
+  const start = startDate.toISOString().slice(0, 10);
+  const timePeriod = { Start: start, End: end };
+
+  try {
+    await client.getCostAndUsage({
+      TimePeriod: timePeriod,
+      Granularity: "MONTHLY",
+      Metrics: ["UnblendedCost"],
+      Filter: buildCeFilter({ kind: "all" }),
+    });
+    checks.push({
+      name: "ce_bedrock_access",
+      status: "ok",
+      message: "Cost Explorer can read Amazon Bedrock costs",
+    });
+  } catch (error) {
+    checks.push({
+      name: "ce_bedrock_access",
+      status: "warn",
+      message: error instanceof Error ? error.message : String(error),
+      fix: "Grant ce:GetCostAndUsage for Cost Explorer fallback (SPEC §15).",
+    });
+  }
+
+  checks.push({
+    name: "ce_principal_tag",
+    status: "ok",
+    message:
+      "Use --principal-tag <key=value> with --source ce to filter by cost allocation tag. IAM principal ARN filtering requires CUR (--source cur).",
+  });
 }
 
 export function overallStatus(checks: DoctorCheck[]): "ok" | "fail" {

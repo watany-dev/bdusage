@@ -4,26 +4,29 @@ import { DEFAULT_CONFIG } from "../config/schema.js";
 import { runDaily } from "./daily.js";
 
 function mockCtx(overrides: Partial<CommandContext> = {}): CommandContext {
+  const billing = {
+    resolved: "cur" as const,
+    fetchDaily: vi.fn().mockResolvedValue([
+      {
+        date: "2026-06-01",
+        cost: 1,
+        tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+        top_model: null,
+      },
+    ]),
+    fetchMonthly: vi.fn(),
+    fetchModels: vi.fn(),
+    fetchBillingFreshness: vi.fn().mockResolvedValue({ status: "partial", latest: "2026-06-01" }),
+  };
   return {
     version: "bdusage v0.1.0",
     configPath: "/tmp/config.toml",
     config: DEFAULT_CONFIG,
     options: { source: "cur" },
     outputFormat: "table",
-    createCurSource: () =>
-      ({
-        fetchDaily: vi.fn().mockResolvedValue([
-          {
-            date: "2026-06-01",
-            cost: 1,
-            tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
-            top_model: null,
-          },
-        ]),
-        fetchBillingFreshness: vi
-          .fn()
-          .mockResolvedValue({ status: "partial", latest: "2026-06-01" }),
-      }) as ReturnType<CommandContext["createCurSource"]>,
+    resolvedSource: "cur",
+    createCurSource: vi.fn(),
+    createBillingSource: vi.fn().mockResolvedValue(billing),
     resolvePrincipal: vi.fn().mockResolvedValue({ kind: "self", arn: "arn:1" }),
     ...overrides,
   } as CommandContext;

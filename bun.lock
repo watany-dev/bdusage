@@ -6,6 +6,7 @@
       "name": "bdusage",
       "dependencies": {
         "@aws-sdk/client-athena": "^3.1053.0",
+        "@aws-sdk/client-cost-explorer": "^3.1053.0",
         "@aws-sdk/client-sts": "^3.1053.0",
         "commander": "^14.0.3",
         "smol-toml": "^1.6.1",
@@ -41,6 +42,8 @@
     "@aws-crypto/util": ["@aws-crypto/util@5.2.0", "", { "dependencies": { "@aws-sdk/types": "^3.222.0", "@smithy/util-utf8": "^2.0.0", "tslib": "^2.6.2" } }, "sha512-4RkU9EsI6ZpBve5fseQlGNUWKMa1RLPQ1dnjnQoe07ldfIzcsGb5hC5W0Dm7u423KWzawlrpbjXBrXCEv9zazQ=="],
 
     "@aws-sdk/client-athena": ["@aws-sdk/client-athena@3.1053.0", "", { "dependencies": { "@aws-crypto/sha256-browser": "5.2.0", "@aws-crypto/sha256-js": "5.2.0", "@aws-sdk/core": "^3.974.13", "@aws-sdk/credential-provider-node": "^3.972.44", "@aws-sdk/types": "^3.973.9", "@smithy/core": "^3.24.3", "@smithy/fetch-http-handler": "^5.4.3", "@smithy/node-http-handler": "^4.7.3", "@smithy/types": "^4.14.2", "tslib": "^2.6.2" } }, "sha512-3Ufk5VgOh+E8b2dZ5L+8uzlPuG0NGlf4Yj58HyHVKpy6THtRN2LDUkSSQzByz7+ZtfQ7kDIm+29Xd0pyyQIA+Q=="],
+
+    "@aws-sdk/client-cost-explorer": ["@aws-sdk/client-cost-explorer@3.1053.0", "", { "dependencies": { "@aws-crypto/sha256-browser": "5.2.0", "@aws-crypto/sha256-js": "5.2.0", "@aws-sdk/core": "^3.974.13", "@aws-sdk/credential-provider-node": "^3.972.44", "@aws-sdk/types": "^3.973.9", "@smithy/core": "^3.24.3", "@smithy/fetch-http-handler": "^5.4.3", "@smithy/node-http-handler": "^4.7.3", "@smithy/types": "^4.14.2", "tslib": "^2.6.2" } }, "sha512-nDUFCy8Wt+Yq97bdJNWOaFpXGJBnC6Il6ZyXnezRTjtGeKDRpQ4MwCfFaTae/3qkpdhmh1+/SDCD/+zNu62P9Q=="],
 
     "@aws-sdk/client-sts": ["@aws-sdk/client-sts@3.1053.0", "", { "dependencies": { "@aws-crypto/sha256-browser": "5.2.0", "@aws-crypto/sha256-js": "5.2.0", "@aws-sdk/core": "^3.974.13", "@aws-sdk/credential-provider-node": "^3.972.44", "@aws-sdk/signature-v4-multi-region": "^3.996.28", "@aws-sdk/types": "^3.973.9", "@smithy/core": "^3.24.3", "@smithy/fetch-http-handler": "^5.4.3", "@smithy/node-http-handler": "^4.7.3", "@smithy/types": "^4.14.2", "tslib": "^2.6.2" } }, "sha512-0lkXV/by8oHnKjScVfWoZsvyalkV3iiMobDYDS/vmtXnmnpHoi2jlo8Jo51vYaqTGPbI1IJ2jtHj5cLsmB7Qkg=="],
 
