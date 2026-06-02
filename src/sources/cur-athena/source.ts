@@ -1,8 +1,9 @@
 import type { AthenaExecutor } from "../../aws/athena.js";
 import type { BdusageConfig } from "../../config/schema.js";
+import type { ResolvedCurEngine } from "../../types/engine.js";
 import type { PrincipalFilter } from "../../types/principal.js";
 import type { BillingDataStatus, DailyRow, ModelRow, MonthlyRow } from "../../types/report.js";
-import type { BillingSource } from "../billing-source.js";
+import type { CurBillingSource } from "../billing-source.js";
 import {
   athenaRowsToRaw,
   mapRawDailyRows,
@@ -17,8 +18,10 @@ import {
   monthlyQuery,
 } from "./queries.js";
 
-export class CurSource implements BillingSource {
+export class CurAthenaSource implements CurBillingSource {
   readonly resolved = "cur" as const;
+  readonly curEngine: ResolvedCurEngine = "athena";
+
   constructor(
     private readonly executor: AthenaExecutor,
     private readonly config: BdusageConfig,
@@ -56,9 +59,9 @@ export class CurSource implements BillingSource {
   }
 
   private async run(sql: string): Promise<Array<Record<string, string | null>>> {
-    const { database, workgroup, output_location } = this.config.athena;
+    const { database, workgroup, output_location } = this.config.cur.athena;
     if (!output_location) {
-      throw new Error("athena.output_location is not set in config. Run bdusage doctor.");
+      throw new Error("cur.athena.output_location is not set in config. Run bdusage doctor.");
     }
     return this.executor.executeQuery({
       sql,

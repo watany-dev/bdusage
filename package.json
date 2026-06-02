@@ -1,6 +1,6 @@
 {
   "name": "bdusage",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/watany-dev/bdusage.git"
@@ -44,6 +44,7 @@
     "cli",
     "cur",
     "athena",
+    "duckdb",
     "usage"
   ],
   "license": "MIT",
@@ -79,6 +80,7 @@
     "@aws-sdk/client-cost-explorer": "^3.1053.0",
     "@aws-sdk/client-pricing": "^3.1053.0",
     "@aws-sdk/client-sts": "^3.1053.0",
+    "@duckdb/node-api": "^1.5.3-r.2",
     "commander": "^14.0.3",
     "smol-toml": "^1.6.1"
   }

@@ -8,6 +8,16 @@ vi.mock("../config/load.js", async (importOriginal) => {
     ...actual,
     loadConfigFile: vi.fn().mockResolvedValue({
       aws: { profile: "cfg", region: "ap-northeast-1" },
+      cur: {
+        engine: "athena" as const,
+        duckdb: { files: [], hive_partitioning: true, union_by_name: true },
+        athena: {
+          database: "cur",
+          table: "t",
+          workgroup: "wg",
+          output_location: "s3://x/",
+        },
+      },
       athena: {
         database: "cur",
         table: "t",

@@ -39,6 +39,55 @@ describe("loadConfigFile", () => {
     );
     const cfg = await loadConfigFile(path);
     expect(cfg.athena.database).toBe("d");
+    expect(cfg.cur.athena.database).toBe("d");
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("loads optional top-level sections and legacy athena alias", async () => {
+    const dir = join(tmpdir(), `bdusage-test-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const path = join(dir, "config.toml");
+    await writeFile(
+      path,
+      `[aws]
+profile = "work"
+
+[logs]
+log_group = "/aws/bedrock/modelinvocations"
+
+[cost]
+metric = "net_unblended"
+
+[output]
+default_format = "json"
+
+[athena]
+database = "legacy"
+table = "legacy_table"
+workgroup = "wg"
+output_location = "s3://legacy/"
+`,
+    );
+    const cfg = await loadConfigFile(path);
+    expect(cfg.aws.profile).toBe("work");
+    expect(cfg.logs.log_group).toContain("bedrock");
+    expect(cfg.cost.metric).toBe("net_unblended");
+    expect(cfg.output.default_format).toBe("json");
+    expect(cfg.cur.athena.database).toBe("legacy");
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("loads cur.duckdb files as string or array", async () => {
+    const dir = join(tmpdir(), `bdusage-test-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    const path = join(dir, "config.toml");
+    await writeFile(
+      path,
+      `[cur]\nengine = "duckdb"\n\n[cur.duckdb]\nfiles = "s3://bucket/**/*.parquet"\n`,
+    );
+    const cfg = await loadConfigFile(path);
+    expect(cfg.cur.engine).toBe("duckdb");
+    expect(cfg.cur.duckdb.files).toEqual(["s3://bucket/**/*.parquet"]);
     await rm(dir, { recursive: true, force: true });
   });
 });

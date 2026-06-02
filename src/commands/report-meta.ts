@@ -1,4 +1,5 @@
 import type { CommandContext } from "../cli/context.js";
+import { resolveCurEngineLabel } from "../types/engine.js";
 import type { PrincipalFilter } from "../types/principal.js";
 import { formatPrincipalFilter } from "../types/principal.js";
 import type { EstimateReportMeta, ReportMeta } from "../types/report.js";
@@ -14,7 +15,7 @@ export function buildReportMeta(
   billing?: { status: ReportMeta["billingDataStatus"]; latest: string | null },
 ): ReportMeta {
   const source = ctx.resolvedSource ?? (ctx.options.source === "ce" ? "ce" : "cur");
-  return {
+  const meta: ReportMeta = {
     version: ctx.version,
     source,
     sourceLabel: resolveSourceLabel(source),
@@ -27,6 +28,11 @@ export function buildReportMeta(
     billingDataLatest: billing?.latest ?? null,
     currency: ctx.config.output.currency,
   };
+  if (source === "cur" && ctx.resolvedCurEngine) {
+    meta.engine = ctx.resolvedCurEngine;
+    meta.engineLabel = resolveCurEngineLabel(ctx.resolvedCurEngine);
+  }
+  return meta;
 }
 
 export function buildEstimateReportMeta(

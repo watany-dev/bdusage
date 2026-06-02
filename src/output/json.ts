@@ -5,6 +5,8 @@ export function renderJson<T>(envelope: ReportEnvelope<T>): string {
     version: envelope.meta.version,
     source: envelope.meta.source,
     source_label: envelope.meta.sourceLabel,
+    ...(envelope.meta.engine ? { engine: envelope.meta.engine } : {}),
+    ...(envelope.meta.engineLabel ? { engine_label: envelope.meta.engineLabel } : {}),
     profile: envelope.meta.profile,
     principal: envelope.meta.principalDisplay,
     period: envelope.meta.period,

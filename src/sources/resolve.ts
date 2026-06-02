@@ -1,27 +1,17 @@
-import type { AthenaExecutor } from "../aws/athena.js";
-import type { BdusageConfig } from "../config/schema.js";
+import type { CurEngineName } from "../types/engine.js";
 import type { SourceName } from "../types/source.js";
-import type { BillingSource } from "./billing-source.js";
+import type { BillingSource, CurBillingSource } from "./billing-source.js";
 import { CeSource } from "./ce/source.js";
-import { sampleBedrockQuery } from "./cur/queries.js";
-import { CurSource } from "./cur/source.js";
 
-class CurUnavailableError extends Error {
-  override readonly cause?: unknown;
-
-  constructor(message: string, cause?: unknown) {
-    super(message);
-    this.name = "CurUnavailableError";
-    this.cause = cause;
-  }
+interface ResolveBillingOptions {
+  curEngine: CurEngineName;
 }
 
 export async function resolveBillingSource(
   requested: SourceName,
-  createCur: () => CurSource,
+  _options: ResolveBillingOptions,
+  resolveCur: () => Promise<CurBillingSource>,
   createCe: () => CeSource,
-  config: BdusageConfig,
-  executor: AthenaExecutor | null,
 ): Promise<BillingSource> {
   if (requested === "logs") {
     throw new Error(
@@ -32,14 +22,13 @@ export async function resolveBillingSource(
     return createCe();
   }
   if (requested === "cur") {
-    return createCur();
+    return resolveCur();
   }
 
   try {
-    await probeCur(config, executor);
-    return createCur();
-  } catch (error) {
-    const curMsg = error instanceof Error ? error.message : String(error);
+    return await resolveCur();
+  } catch (curError) {
+    const curMsg = curError instanceof Error ? curError.message : String(curError);
     const ce = createCe();
     try {
       await ce.probe();
@@ -50,25 +39,5 @@ export async function resolveBillingSource(
         `Could not use CUR (${curMsg}) or Cost Explorer (${ceMsg}). Run bdusage doctor.`,
       );
     }
-  }
-}
-
-async function probeCur(config: BdusageConfig, executor: AthenaExecutor | null): Promise<void> {
-  if (!executor) {
-    throw new CurUnavailableError("Athena executor not available");
-  }
-  const { database, workgroup, output_location } = config.athena;
-  if (!output_location) {
-    throw new CurUnavailableError("athena.output_location is not set");
-  }
-  try {
-    await executor.executeQuery({
-      sql: sampleBedrockQuery(config),
-      database,
-      workgroup,
-      outputLocation: output_location,
-    });
-  } catch (error) {
-    throw new CurUnavailableError(error instanceof Error ? error.message : String(error), error);
   }
 }

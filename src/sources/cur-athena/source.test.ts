@@ -1,17 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AthenaExecutor } from "../../aws/athena.js";
 import { DEFAULT_CONFIG } from "../../config/schema.js";
-import { CurSource } from "./source.js";
+import { CurAthenaSource } from "./source.js";
 
+const athena = {
+  ...DEFAULT_CONFIG.cur.athena,
+  output_location: "s3://bucket/prefix/",
+};
 const config = {
   ...DEFAULT_CONFIG,
-  athena: {
-    ...DEFAULT_CONFIG.athena,
-    output_location: "s3://bucket/prefix/",
-  },
+  cur: { ...DEFAULT_CONFIG.cur, athena },
+  athena,
 };
 
-describe("CurSource", () => {
+describe("CurAthenaSource", () => {
   const executor: AthenaExecutor = {
     executeQuery: vi.fn().mockResolvedValue([
       {
@@ -24,7 +26,7 @@ describe("CurSource", () => {
   };
 
   it("fetches daily, monthly, models, billing freshness", async () => {
-    const source = new CurSource(executor, config);
+    const source = new CurAthenaSource(executor, config);
     const principal = { kind: "self" as const, arn: "arn:aws:sts::1:assumed-role/R/u" };
     const range = { since: "2026-05-01", until: "2026-06-01" };
 
@@ -54,7 +56,7 @@ describe("CurSource", () => {
   });
 
   it("throws when output_location missing", async () => {
-    const source = new CurSource({ executeQuery: vi.fn() }, DEFAULT_CONFIG);
+    const source = new CurAthenaSource({ executeQuery: vi.fn() }, DEFAULT_CONFIG);
     await expect(
       source.fetchDaily({ kind: "all" }, { since: "2026-05-01", until: "2026-06-01" }),
     ).rejects.toThrow("output_location");

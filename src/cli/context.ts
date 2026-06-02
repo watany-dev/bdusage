@@ -7,12 +7,15 @@ import { getCallerIdentity } from "../aws/sts.js";
 import { ConfigError, loadConfigFile } from "../config/load.js";
 import { defaultConfigPath } from "../config/paths.js";
 import type { BdusageConfig } from "../config/schema.js";
-import type { BillingSource } from "../sources/billing-source.js";
+import type { BillingSource, CurBillingSource } from "../sources/billing-source.js";
 import { CeSource } from "../sources/ce/source.js";
-import { CurSource } from "../sources/cur/source.js";
+import { CurAthenaSource } from "../sources/cur-athena/source.js";
 import type { EstimateSource } from "../sources/estimate-source.js";
 import { LogsSource } from "../sources/logs/source.js";
 import { resolveBillingSource } from "../sources/resolve.js";
+import { resolveCurBillingSource } from "../sources/resolve-cur.js";
+import type { CurEngineName, ResolvedCurEngine } from "../types/engine.js";
+import { isCurEngineName } from "../types/engine.js";
 import type { PrincipalFilter } from "../types/principal.js";
 import { assertCurPrincipalFilter, parsePrincipalTag } from "../types/principal.js";
 import type { OutputFormat } from "../types/report.js";
@@ -24,6 +27,7 @@ export interface GlobalOptions {
   profile?: string | undefined;
   region?: string | undefined;
   source: SourceName;
+  curEngine?: CurEngineName | undefined;
   principalArn?: string | undefined;
   principalRole?: string | undefined;
   principalTag?: string | undefined;
@@ -43,7 +47,8 @@ export interface CommandContext {
   outputFormat: OutputFormat;
   version: string;
   resolvedSource?: ResolvedSourceName;
-  createCurSource(): CurSource;
+  resolvedCurEngine?: ResolvedCurEngine;
+  createCurSource(): Promise<CurBillingSource>;
   createBillingSource(): Promise<BillingSource>;
   createEstimateSource(): Promise<EstimateSource>;
   resolvePrincipal(): Promise<PrincipalFilter>;
@@ -71,6 +76,8 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
     throw new Error(`Unsupported source: ${source}`);
   }
 
+  const curEngine = normalizeCurEngine(options.curEngine ?? "auto");
+
   let outputFormat: OutputFormat = config.output.default_format;
   if (options.json) {
     outputFormat = "json";
@@ -81,30 +88,39 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
   const ctx: CommandContext = {
     config,
     configPath,
-    options: { ...options, source },
+    options: { ...options, source, curEngine },
     outputFormat,
     version: `bdusage v${VERSION}`,
-    createCurSource() {
+    async createCurSource() {
       const client = createAthenaClient(region, profile);
-      const executor: AthenaExecutor = new LiveAthenaExecutor(client);
-      return new CurSource(executor, config);
+      const athenaExecutor: AthenaExecutor = new LiveAthenaExecutor(client);
+      const cur = await resolveCurBillingSource(
+        { engine: curEngine },
+        config,
+        {
+          createAthena: () => new CurAthenaSource(athenaExecutor, config),
+        },
+        athenaExecutor,
+      );
+      ctx.resolvedSource = "cur";
+      ctx.resolvedCurEngine = cur.curEngine;
+      return cur;
     },
     async createBillingSource() {
-      const client = createAthenaClient(region, profile);
-      const executor: AthenaExecutor = new LiveAthenaExecutor(client);
-      const cur = new CurSource(executor, config);
       const ce = new CeSource(
         new LiveCostExplorerClient(createCostExplorerClient(region, profile)),
         config,
       );
       const billing = await resolveBillingSource(
         source,
-        () => cur,
+        { curEngine },
+        () => ctx.createCurSource(),
         () => ce,
-        config,
-        executor,
       );
       ctx.resolvedSource = billing.resolved;
+      if (billing.resolved === "cur") {
+        ctx.resolvedCurEngine = (billing as CurBillingSource).curEngine;
+      }
       return billing;
     },
     async createEstimateSource() {
@@ -143,6 +159,13 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
   };
 
   return ctx;
+}
+
+export function normalizeCurEngine(value: string): CurEngineName {
+  if (isCurEngineName(value)) {
+    return value;
+  }
+  throw new Error(`Unknown --cur-engine: ${value}. Use auto|duckdb|athena.`);
 }
 
 export async function resolvePrincipalForBilling(
@@ -189,6 +212,9 @@ export function mapCliError(error: unknown): { message: string; exitCode: number
         message: `Athena query failed: ${msg}. Run bdusage doctor.`,
         exitCode: 1,
       };
+    }
+    if (msg.includes("DuckDB") || msg.includes("cur.duckdb")) {
+      return { message: msg, exitCode: 1 };
     }
     if (msg.includes("Cost Explorer") || msg.includes("principal-tag")) {
       return { message: msg, exitCode: 1 };
