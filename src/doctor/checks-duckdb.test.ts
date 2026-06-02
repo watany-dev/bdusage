@@ -96,4 +96,34 @@ describe("runDoctorChecks duckdb", () => {
     const checks = await runDoctorChecks(duckConfig, "/tmp/config.toml", null);
     expect(checks.find((c) => c.name === "duckdb_httpfs")?.status).toBe("fail");
   });
+
+  it("warns when duckdb files are not configured", async () => {
+    const checks = await runDoctorChecks(DEFAULT_CONFIG, "/tmp/config.toml", null);
+    expect(checks.find((c) => c.name === "duckdb_files")?.status).toBe("warn");
+  });
+
+  it("reports duckdb_connect on generic executor failure", async () => {
+    const { createDuckDbExecutor } = await import("../sources/cur-duckdb/duckdb.js");
+    vi.mocked(createDuckDbExecutor).mockRejectedValue(new Error("cannot open parquet"));
+
+    const checks = await runDoctorChecks(duckConfig, "/tmp/config.toml", null);
+    expect(checks.find((c) => c.name === "duckdb_connect")?.status).toBe("fail");
+  });
+
+  it("fails duckdb checks when queries or columns are missing", async () => {
+    const { createDuckDbExecutor } = await import("../sources/cur-duckdb/duckdb.js");
+    vi.mocked(createDuckDbExecutor).mockResolvedValue({
+      executeQuery: vi
+        .fn()
+        .mockRejectedValueOnce(new Error("no parquet"))
+        .mockResolvedValueOnce([{ column_name: "line_item_product_code" }])
+        .mockResolvedValueOnce([]),
+      close: vi.fn(),
+    });
+
+    const checks = await runDoctorChecks(duckConfig, "/tmp/config.toml", null);
+    expect(checks.find((c) => c.name === "duckdb_sample_bedrock_query")?.status).toBe("fail");
+    expect(checks.find((c) => c.name === "duckdb_required_columns")?.status).toBe("fail");
+    expect(checks.find((c) => c.name === "duckdb_iam_principal_column")?.status).toBe("fail");
+  });
 });

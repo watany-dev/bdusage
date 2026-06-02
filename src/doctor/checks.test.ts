@@ -28,6 +28,7 @@ vi.mock("../aws/sts.js", () => ({
 }));
 
 const runInsightsQueryMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+const getCostAndUsageMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 
 vi.mock("../aws/cloudwatch-logs.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../aws/cloudwatch-logs.js")>();
@@ -46,9 +47,7 @@ vi.mock("../aws/cost-explorer.js", async (importOriginal) => {
     ...actual,
     createCostExplorerClient: vi.fn(),
     LiveCostExplorerClient: class {
-      async getCostAndUsage() {
-        return [];
-      }
+      getCostAndUsage = getCostAndUsageMock;
     },
   };
 });
@@ -188,5 +187,58 @@ describe("runDoctorChecks", () => {
 
     const checks = await runDoctorChecks(config, "/tmp/config.toml", null);
     expect(checks.find((c) => c.name === "ce_principal_tag")?.message).toContain("--principal-tag");
+  });
+
+  it("warns on Cost Explorer access failure", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+    getCostAndUsageMock.mockRejectedValueOnce(new Error("AccessDenied"));
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", null);
+    expect(checks.find((c) => c.name === "ce_bedrock_access")?.status).toBe("warn");
+    getCostAndUsageMock.mockResolvedValue([]);
+  });
+
+  it("uses raw message when iam principal query fails without column hint", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(config, "/tmp/config.toml", {
+      executeQuery: vi
+        .fn()
+        .mockResolvedValueOnce([{ line_item_usage_type: "X" }])
+        .mockRejectedValueOnce(new Error("Query timeout")),
+    });
+    const principal = checks.find((c) => c.name === "athena_iam_principal_column");
+    expect(principal?.status).toBe("fail");
+    expect(principal?.message).toBe("Query timeout");
+  });
+
+  it("warns athena_query when neither Athena nor DuckDB is configured", async () => {
+    const { getCallerIdentity } = await import("../aws/sts.js");
+    vi.mocked(getCallerIdentity).mockResolvedValueOnce(identity);
+
+    const checks = await runDoctorChecks(
+      {
+        ...config,
+        cur: {
+          ...config.cur,
+          duckdb: { ...config.cur.duckdb, files: [] },
+          athena: { ...config.cur.athena, output_location: "" },
+        },
+      },
+      "/tmp/config.toml",
+      null,
+    );
+    expect(checks.find((c) => c.name === "athena_query")?.status).toBe("warn");
+  });
+
+  it("overallStatus is fail when any check fails", () => {
+    expect(
+      overallStatus([
+        { name: "x", status: "ok" },
+        { name: "y", status: "fail" },
+      ]),
+    ).toBe("fail");
   });
 });

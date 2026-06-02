@@ -25,6 +25,29 @@ describe("runWhoami", () => {
     expect(out).toContain("cur.engine:");
   });
 
+  it("shows athena output_location when configured", async () => {
+    const ctx = {
+      version: "bdusage v0.3.1",
+      configPath: "/tmp/c.toml",
+      config: {
+        ...DEFAULT_CONFIG,
+        aws: { profile: "p", region: "r" },
+        cur: {
+          ...DEFAULT_CONFIG.cur,
+          athena: {
+            ...DEFAULT_CONFIG.cur.athena,
+            output_location: "s3://results/",
+          },
+        },
+      },
+      resolvePrincipal: vi.fn().mockResolvedValue({ kind: "self", arn: "arn:1" }),
+    } as CommandContext;
+    const out = await runWhoami(ctx);
+    expect(out).toContain("cur.athena:");
+    expect(out).toContain("workgroup:");
+    expect(out).not.toContain("(no output_location)");
+  });
+
   it("shows duckdb files when configured", async () => {
     const ctx = {
       version: "bdusage v0.3.1",
