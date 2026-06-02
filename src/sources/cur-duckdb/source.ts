@@ -1,16 +1,32 @@
 import type { BdusageConfig } from "../../config/schema.js";
 import type { PrincipalFilter } from "../../types/principal.js";
-import type { BillingDataStatus, DailyRow, ModelRow, MonthlyRow } from "../../types/report.js";
+import type {
+  BillingDataStatus,
+  DailyRow,
+  ModelRow,
+  MonthlyRow,
+  UserRow,
+  WeeklyRow,
+} from "../../types/report.js";
 import type { CurBillingSource } from "../billing-source.js";
 import {
   athenaRowsToRaw,
   mapRawDailyRows,
   mapRawModelRows,
   mapRawMonthlyRows,
+  mapRawUserRows,
+  mapRawWeeklyRows,
 } from "../cur-athena/aggregate.js";
 import type { DateRange } from "../cur-athena/queries.js";
 import type { DuckDbExecutor } from "./duckdb.js";
-import { billingFreshnessQuery, dailyQuery, modelsQuery, monthlyQuery } from "./queries.js";
+import {
+  billingFreshnessQuery,
+  dailyQuery,
+  modelsQuery,
+  monthlyQuery,
+  usersByPrincipalQuery,
+  weeklyQuery,
+} from "./queries.js";
 
 export class CurDuckDbSource implements CurBillingSource {
   readonly resolved = "cur" as const;
@@ -26,9 +42,19 @@ export class CurDuckDbSource implements CurBillingSource {
     return mapRawDailyRows(athenaRowsToRaw(rows));
   }
 
+  async fetchWeekly(principal: PrincipalFilter, range: DateRange): Promise<WeeklyRow[]> {
+    const rows = await this.executor.executeQuery(weeklyQuery(this.config, principal, range));
+    return mapRawWeeklyRows(athenaRowsToRaw(rows));
+  }
+
   async fetchMonthly(principal: PrincipalFilter, range: DateRange): Promise<MonthlyRow[]> {
     const rows = await this.executor.executeQuery(monthlyQuery(this.config, principal, range));
     return mapRawMonthlyRows(athenaRowsToRaw(rows));
+  }
+
+  async fetchUsers(range: DateRange): Promise<UserRow[]> {
+    const rows = await this.executor.executeQuery(usersByPrincipalQuery(this.config, range));
+    return mapRawUserRows(athenaRowsToRaw(rows));
   }
 
   async fetchModels(principal: PrincipalFilter, range: DateRange): Promise<ModelRow[]> {

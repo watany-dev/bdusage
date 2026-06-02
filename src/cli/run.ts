@@ -14,7 +14,7 @@ export function formatHelpText(): string {
     "Usage:",
     `  npx ${TOOL_NAME} [command] [options]`,
     "",
-    "Commands: summary, daily, monthly, models, today, whoami, doctor",
+    "Commands: summary, daily, weekly, monthly, models, users, today, whoami, doctor",
     "",
     "  (no command)  Same as summary",
     "",

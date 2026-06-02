@@ -1,10 +1,20 @@
 import { normalizeModelName, pickTopModel } from "../../bedrock/model-normalizer.js";
 import { addUsageAmount, emptyTokenTotals } from "../../bedrock/token-types.js";
-import type { DailyRow, ModelRow, MonthlyRow, TokenTotals } from "../../types/report.js";
+import type {
+  DailyRow,
+  ModelRow,
+  MonthlyRow,
+  TokenTotals,
+  UserRow,
+  WeeklyRow,
+} from "../../types/report.js";
+import { weekEndFromStart, weekStartMonday } from "../../util/weeks.js";
 
 interface RawUsageRow {
   usage_date?: string;
   usage_month?: string;
+  week_start?: string;
+  principal?: string;
   usage_type: string;
   cost: number;
   usage_amount: number;
@@ -44,6 +54,91 @@ export function mapRawDailyRows(rows: RawUsageRow[]): DailyRow[] {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, bucket]) => ({
       date,
+      cost: bucket.cost,
+      tokens: bucket.tokens,
+      top_model: pickTopModel(bucket.models),
+    }));
+}
+
+/** Build weekly rows from daily-granularity raw rows (usage_date + usage_type). */
+export function mapRawRowsToWeekly(rows: RawUsageRow[]): WeeklyRow[] {
+  const byWeek = new Map<string, RawUsageRow[]>();
+  for (const row of rows) {
+    const date = row.usage_date;
+    if (!date) {
+      continue;
+    }
+    const weekStart = weekStartMonday(date);
+    const bucket = byWeek.get(weekStart) ?? [];
+    bucket.push({ ...row, week_start: weekStart });
+    byWeek.set(weekStart, bucket);
+  }
+  const weeklyRows: RawUsageRow[] = [];
+  for (const [, group] of byWeek) {
+    weeklyRows.push(...group);
+  }
+  return mapRawWeeklyRows(weeklyRows);
+}
+
+export function mapRawWeeklyRows(rows: RawUsageRow[]): WeeklyRow[] {
+  const byWeek = new Map<
+    string,
+    { cost: number; tokens: TokenTotals; models: Map<string, number> }
+  >();
+
+  for (const row of rows) {
+    const weekStart = row.week_start;
+    if (!weekStart) {
+      continue;
+    }
+    let bucket = byWeek.get(weekStart);
+    if (!bucket) {
+      bucket = { cost: 0, tokens: emptyTokenTotals(), models: new Map() };
+      byWeek.set(weekStart, bucket);
+    }
+    bucket.cost += row.cost;
+    addUsageAmount(bucket.tokens, row.usage_type, row.usage_amount);
+    const model = normalizeModelName(row.usage_type);
+    bucket.models.set(model, (bucket.models.get(model) ?? 0) + row.cost);
+  }
+
+  return [...byWeek.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([week_start, bucket]) => ({
+      week_start,
+      week_end: weekEndFromStart(week_start),
+      cost: bucket.cost,
+      tokens: bucket.tokens,
+      top_model: pickTopModel(bucket.models),
+    }));
+}
+
+export function mapRawUserRows(rows: RawUsageRow[]): UserRow[] {
+  const byPrincipal = new Map<
+    string,
+    { cost: number; tokens: TokenTotals; models: Map<string, number> }
+  >();
+
+  for (const row of rows) {
+    const principal = row.principal?.trim();
+    if (!principal) {
+      continue;
+    }
+    let bucket = byPrincipal.get(principal);
+    if (!bucket) {
+      bucket = { cost: 0, tokens: emptyTokenTotals(), models: new Map() };
+      byPrincipal.set(principal, bucket);
+    }
+    bucket.cost += row.cost;
+    addUsageAmount(bucket.tokens, row.usage_type, row.usage_amount);
+    const model = normalizeModelName(row.usage_type);
+    bucket.models.set(model, (bucket.models.get(model) ?? 0) + row.cost);
+  }
+
+  return [...byPrincipal.entries()]
+    .sort(([, a], [, b]) => b.cost - a.cost)
+    .map(([principal, bucket]) => ({
+      principal,
       cost: bucket.cost,
       tokens: bucket.tokens,
       top_model: pickTopModel(bucket.models),
@@ -124,6 +219,14 @@ export function athenaRowsToRaw(rows: Array<Record<string, string | null>>): Raw
     const usageMonth = row["usage_month"];
     if (usageMonth) {
       raw.usage_month = usageMonth;
+    }
+    const weekStart = row["week_start"];
+    if (weekStart) {
+      raw.week_start = weekStart;
+    }
+    const principal = row["principal"];
+    if (principal) {
+      raw.principal = principal;
     }
     return raw;
   });

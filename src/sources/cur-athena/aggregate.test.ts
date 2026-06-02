@@ -4,6 +4,9 @@ import {
   mapRawDailyRows,
   mapRawModelRows,
   mapRawMonthlyRows,
+  mapRawRowsToWeekly,
+  mapRawUserRows,
+  mapRawWeeklyRows,
 } from "./aggregate.js";
 
 describe("mapRawDailyRows", () => {
@@ -45,6 +48,59 @@ describe("mapRawDailyRows", () => {
     expect(rows[0]?.tokens.input).toBe(1000);
     expect(rows[0]?.tokens.output).toBe(500);
     expect(rows[0]?.top_model).toBe("Claude 3.5 Sonnet");
+  });
+});
+
+describe("mapRawRowsToWeekly", () => {
+  it("rolls daily usage rows into weeks", () => {
+    const rows = mapRawRowsToWeekly([
+      {
+        usage_date: "2026-06-02",
+        usage_type: "USE1-Claude-3.5-Sonnet-Input-Tokens",
+        cost: 1,
+        usage_amount: 10,
+      },
+      {
+        usage_date: "2026-06-08",
+        usage_type: "USE1-Claude-3.5-Sonnet-Input-Tokens",
+        cost: 2,
+        usage_amount: 5,
+      },
+    ]);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.top_model).toBe("Claude 3.5 Sonnet");
+  });
+});
+
+describe("mapRawWeeklyRows", () => {
+  it("aggregates by week_start", () => {
+    const rows = mapRawWeeklyRows([
+      {
+        week_start: "2026-06-01",
+        usage_type: "USE1-Claude-3.5-Sonnet-Input-Tokens",
+        cost: 1,
+        usage_amount: 10,
+      },
+      {
+        week_start: "2026-06-01",
+        usage_type: "USE1-Claude-3.5-Sonnet-Output-Tokens",
+        cost: 2,
+        usage_amount: 5,
+      },
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.week_end).toBe("2026-06-07");
+    expect(rows[0]?.cost).toBe(3);
+  });
+});
+
+describe("mapRawUserRows", () => {
+  it("sorts principals by cost descending", () => {
+    const rows = mapRawUserRows([
+      { principal: "arn:a", usage_type: "T", cost: 1, usage_amount: 1 },
+      { principal: "arn:b", usage_type: "T", cost: 5, usage_amount: 1 },
+    ]);
+    expect(rows[0]?.principal).toBe("arn:b");
   });
 });
 

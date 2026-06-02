@@ -2,13 +2,22 @@ import type { AthenaExecutor } from "../../aws/athena.js";
 import type { BdusageConfig } from "../../config/schema.js";
 import type { ResolvedCurEngine } from "../../types/engine.js";
 import type { PrincipalFilter } from "../../types/principal.js";
-import type { BillingDataStatus, DailyRow, ModelRow, MonthlyRow } from "../../types/report.js";
+import type {
+  BillingDataStatus,
+  DailyRow,
+  ModelRow,
+  MonthlyRow,
+  UserRow,
+  WeeklyRow,
+} from "../../types/report.js";
 import type { CurBillingSource } from "../billing-source.js";
 import {
   athenaRowsToRaw,
   mapRawDailyRows,
   mapRawModelRows,
   mapRawMonthlyRows,
+  mapRawUserRows,
+  mapRawWeeklyRows,
 } from "./aggregate.js";
 import {
   billingFreshnessQuery,
@@ -16,6 +25,8 @@ import {
   dailyQuery,
   modelsQuery,
   monthlyQuery,
+  usersByPrincipalQuery,
+  weeklyQuery,
 } from "./queries.js";
 
 export class CurAthenaSource implements CurBillingSource {
@@ -33,10 +44,22 @@ export class CurAthenaSource implements CurBillingSource {
     return mapRawDailyRows(athenaRowsToRaw(rows));
   }
 
+  async fetchWeekly(principal: PrincipalFilter, range: DateRange): Promise<WeeklyRow[]> {
+    const sql = weeklyQuery(this.config, principal, range);
+    const rows = await this.run(sql);
+    return mapRawWeeklyRows(athenaRowsToRaw(rows));
+  }
+
   async fetchMonthly(principal: PrincipalFilter, range: DateRange): Promise<MonthlyRow[]> {
     const sql = monthlyQuery(this.config, principal, range);
     const rows = await this.run(sql);
     return mapRawMonthlyRows(athenaRowsToRaw(rows));
+  }
+
+  async fetchUsers(range: DateRange): Promise<UserRow[]> {
+    const sql = usersByPrincipalQuery(this.config, range);
+    const rows = await this.run(sql);
+    return mapRawUserRows(athenaRowsToRaw(rows));
   }
 
   async fetchModels(principal: PrincipalFilter, range: DateRange): Promise<ModelRow[]> {

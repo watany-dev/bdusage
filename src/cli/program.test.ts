@@ -9,6 +9,8 @@ describe("createProgram", () => {
     expect(names).toContain("doctor");
     expect(names).toContain("summary");
     expect(names).toContain("today");
+    expect(names).toContain("weekly");
+    expect(names).toContain("users");
   });
 });
 

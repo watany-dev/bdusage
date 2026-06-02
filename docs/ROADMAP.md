@@ -127,6 +127,24 @@ engine: DuckDB direct Parquet
 
 ---
 
+### v0.3.2 — weekly / users（リリース済み）
+
+**目的**: 週次レポートと管理者向け IAM principal ランキングを追加する。
+
+| 機能 | 内容 |
+|------|------|
+| `weekly` | 週次コスト・トークン（ISO 週・月曜始まり UTC）。CUR: Athena / DuckDB、CE: 日次 usage-type ロールアップ |
+| `users --all` | CUR の `line_item_iam_principal` 別ランキング（`--source cur` 必須。DuckDB / Athena 両 backend） |
+
+**受け入れ条件**:
+
+1. `bdusage weekly --since 90d` が CUR / CE いずれかの billing source で成功する
+2. `bdusage users --all --since 30d` が CUR 環境で principal 別ランキングを返す
+3. `users` は `--all` なしで明確なエラー、`--source ce` では CUR 利用を案内
+4. レポートヘッダに actual ソースラベルを表示（estimate と混在しない）
+
+---
+
 ### v0.4 — Managed mode
 
 | 機能 | 内容 |
@@ -189,6 +207,8 @@ v0.2 Cost Explorer        ← リリース済み（CUR 未設定環境の fallba
 v0.3 Logs estimate        ← リリース済み（today / 速報）
     ↓
 v0.3.1 CUR DuckDB engine  ← リリース済み（init / doctor --fix は未実装）
+    ↓
+v0.3.2 weekly / users     ← リリース済み
     ↓
 v0.4 Managed mode         ← 組織内の厳密な principal スコープ
     ↓

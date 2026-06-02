@@ -1,4 +1,11 @@
-import type { DailyRow, ModelRow, MonthlyRow, ReportMeta } from "../types/report.js";
+import type {
+  DailyRow,
+  ModelRow,
+  MonthlyRow,
+  ReportMeta,
+  UserRow,
+  WeeklyRow,
+} from "../types/report.js";
 
 function metaComments(meta: ReportMeta): string[] {
   return [
@@ -15,6 +22,49 @@ export function renderDailyCsv(meta: ReportMeta, rows: DailyRow[]): string {
     lines.push(
       [
         row.date,
+        row.cost.toFixed(4),
+        row.tokens.input,
+        row.tokens.output,
+        row.tokens.cache_read,
+        row.tokens.cache_write,
+        row.top_model ?? "",
+      ].join(","),
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+export function renderWeeklyCsv(meta: ReportMeta, rows: WeeklyRow[]): string {
+  const lines = [
+    ...metaComments(meta),
+    "week_start,week_end,cost,input,output,cache_read,cache_write,top_model",
+  ];
+  for (const row of rows) {
+    lines.push(
+      [
+        row.week_start,
+        row.week_end,
+        row.cost.toFixed(4),
+        row.tokens.input,
+        row.tokens.output,
+        row.tokens.cache_read,
+        row.tokens.cache_write,
+        row.top_model ?? "",
+      ].join(","),
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+export function renderUsersCsv(meta: ReportMeta, rows: UserRow[]): string {
+  const lines = [
+    ...metaComments(meta),
+    "principal,cost,input,output,cache_read,cache_write,top_model",
+  ];
+  for (const row of rows) {
+    lines.push(
+      [
+        `"${row.principal.replace(/"/g, '""')}"`,
         row.cost.toFixed(4),
         row.tokens.input,
         row.tokens.output,

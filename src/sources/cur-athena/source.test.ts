@@ -55,6 +55,34 @@ describe("CurAthenaSource", () => {
     expect(executor.executeQuery).toHaveBeenCalled();
   });
 
+  it("fetches weekly and users rankings", async () => {
+    const source = new CurAthenaSource(executor, config);
+    vi.mocked(executor.executeQuery).mockResolvedValueOnce([
+      {
+        week_start: "2026-05-26",
+        usage_type: "USE1-Claude-3.5-Sonnet-Input-Tokens",
+        cost: "1",
+        usage_amount: "10",
+      },
+    ]);
+    const weekly = await source.fetchWeekly(
+      { kind: "self", arn: "arn:aws:sts::1:assumed-role/R/u" },
+      { since: "2026-05-01", until: "2026-06-01" },
+    );
+    expect(weekly[0]?.week_start).toBe("2026-05-26");
+
+    vi.mocked(executor.executeQuery).mockResolvedValueOnce([
+      {
+        principal: "arn:aws:sts::1:assumed-role/R/u",
+        usage_type: "T",
+        cost: "5",
+        usage_amount: "1",
+      },
+    ]);
+    const users = await source.fetchUsers({ since: "2026-05-01", until: "2026-06-01" });
+    expect(users[0]?.principal).toContain("assumed-role");
+  });
+
   it("throws when output_location missing", async () => {
     const source = new CurAthenaSource({ executeQuery: vi.fn() }, DEFAULT_CONFIG);
     await expect(

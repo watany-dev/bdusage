@@ -35,6 +35,44 @@ ORDER BY 1
 `.trim();
 }
 
+export function weeklyQuery(
+  config: BdusageConfig,
+  principal: PrincipalFilter,
+  range: DateRange,
+): string {
+  const costCol = costColumn(config.cost.metric);
+  return `
+SELECT
+  CAST(date_trunc('week', CAST(line_item_usage_start_date AS DATE)) AS VARCHAR) AS week_start,
+  SUM(${costCol}) AS cost,
+  line_item_usage_type AS usage_type,
+  SUM(line_item_usage_amount) AS usage_amount
+FROM ${CUR_VIEW}
+${baseWhere(config, principal, range)}
+GROUP BY 1, 3
+ORDER BY 1
+`.trim();
+}
+
+export function usersByPrincipalQuery(config: BdusageConfig, range: DateRange): string {
+  const costCol = costColumn(config.cost.metric);
+  return `
+SELECT
+  line_item_iam_principal AS principal,
+  SUM(${costCol}) AS cost,
+  line_item_usage_type AS usage_type,
+  SUM(line_item_usage_amount) AS usage_amount
+FROM ${CUR_VIEW}
+WHERE line_item_product_code = 'AmazonBedrock'
+  AND line_item_line_item_type = 'Usage'
+  AND line_item_usage_start_date >= TIMESTAMP '${range.since}'
+  AND line_item_usage_start_date < TIMESTAMP '${range.until}'
+  AND line_item_iam_principal IS NOT NULL
+  AND TRIM(line_item_iam_principal) <> ''
+GROUP BY 1, 3
+`.trim();
+}
+
 export function monthlyQuery(
   config: BdusageConfig,
   principal: PrincipalFilter,
