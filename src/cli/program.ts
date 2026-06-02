@@ -95,9 +95,10 @@ export function normalizeSource(value: string): GlobalOptions["source"] {
 }
 
 export async function runWithHandler(command: Command, runner: CommandRunner): Promise<number> {
+  let ctx: Awaited<ReturnType<typeof buildCommandContext>> | undefined;
   try {
     const options = readGlobalOptions(command);
-    const ctx = await buildCommandContext(options);
+    ctx = await buildCommandContext(options);
     const output = await runner(ctx);
     process.stdout.write(output.endsWith("\n") ? output : `${output}\n`);
     return 0;
@@ -108,6 +109,8 @@ export async function runWithHandler(command: Command, runner: CommandRunner): P
       console.error("Run `npx bdusage doctor` for setup diagnostics.");
     }
     return mapped.exitCode;
+  } finally {
+    await ctx?.disposeBillingSource?.();
   }
 }
 

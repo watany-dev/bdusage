@@ -54,4 +54,14 @@ describe("CurDuckDbSource", () => {
     expect(billing.status).toBe("partial");
     expect(executor.executeQuery).toHaveBeenCalled();
   });
+
+  it("disposes duckdb executor", async () => {
+    const close = vi.fn();
+    const source = new CurDuckDbSource(
+      { executeQuery: vi.fn().mockResolvedValue([]), close },
+      config,
+    );
+    await source.dispose();
+    expect(close).toHaveBeenCalled();
+  });
 });

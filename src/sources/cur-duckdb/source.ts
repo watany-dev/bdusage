@@ -87,6 +87,10 @@ export class CurDuckDbSource implements CurBillingSource {
     return parseBillingFreshnessFromRows(rows);
   }
 
+  async dispose(): Promise<void> {
+    await this.executor.close();
+  }
+
   private async fetchMapped<TRow>(
     sql: string,
     mapFn: (raw: ReturnType<typeof athenaRowsToRaw>) => TRow[],

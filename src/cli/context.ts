@@ -48,6 +48,7 @@ export interface CommandContext {
   createBillingSource(): Promise<BillingSource>;
   createEstimateSource(): Promise<EstimateSource>;
   resolvePrincipal(): Promise<PrincipalFilter>;
+  disposeBillingSource(): Promise<void>;
 }
 
 export async function buildCommandContext(options: GlobalOptions): Promise<CommandContext> {
@@ -81,6 +82,8 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
     outputFormat = "csv";
   }
 
+  let activeBilling: BillingSource | null = null;
+
   const ctx: CommandContext = {
     config,
     configPath,
@@ -109,11 +112,18 @@ export async function buildCommandContext(options: GlobalOptions): Promise<Comma
         () => ctx.createCurSource(),
         () => ce,
       );
+      activeBilling = billing;
       ctx.resolvedSource = billing.resolved;
       if (billing.resolved === "cur") {
         ctx.resolvedCurEngine = (billing as CurBillingSource).curEngine;
       }
       return billing;
+    },
+    async disposeBillingSource() {
+      if (activeBilling?.dispose) {
+        await activeBilling.dispose();
+      }
+      activeBilling = null;
     },
     async createEstimateSource() {
       if (source !== "logs") {

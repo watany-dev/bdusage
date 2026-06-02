@@ -141,10 +141,12 @@ describe("buildCommandContext", () => {
     const curCtx = await buildCommandContext({ source: "cur" });
     const curBilling = await curCtx.createBillingSource();
     expect(curBilling.resolved).toBe("cur");
+    await curCtx.disposeBillingSource();
 
     const ceCtx = await buildCommandContext({ source: "ce" });
     const ceBilling = await ceCtx.createBillingSource();
     expect(ceBilling.resolved).toBe("ce");
+    await ceCtx.disposeBillingSource();
   });
 
   it("createEstimateSource returns logs source", async () => {

@@ -28,6 +28,8 @@ export interface BillingSource {
   }>;
   /** Freshness from the most recent ranged fetch (CUR sources only). */
   peekBillingFreshness?(): BillingFreshness | null;
+  /** Release DuckDB sessions and similar resources. */
+  dispose?(): Promise<void>;
 }
 
 export interface CurBillingSource extends BillingSource {
