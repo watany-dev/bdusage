@@ -11,6 +11,10 @@ export interface BdusageConfig {
     workgroup: string;
     output_location: string;
   };
+  logs: {
+    log_group: string;
+    region?: string;
+  };
   cost: {
     metric: CostMetric;
   };
@@ -30,6 +34,9 @@ export const DEFAULT_CONFIG: BdusageConfig = {
     table: "cost_and_usage_report",
     workgroup: "primary",
     output_location: "",
+  },
+  logs: {
+    log_group: "",
   },
   cost: {
     metric: "unblended",

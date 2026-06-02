@@ -1,4 +1,11 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "ignore": ["src/**/*.test.ts"]
+  "entry": ["src/cli.ts", "src/index.ts"],
+  "project": ["src/**/*.ts"],
+  "ignore": ["src/**/*.test.ts"],
+  "ignoreIssues": {
+    "src/aws/cloudwatch-logs.ts": ["types"],
+    "src/aws/pricing.ts": ["types"],
+    "src/sources/logs/aggregate.ts": ["types"]
+  }
 }

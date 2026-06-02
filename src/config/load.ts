@@ -25,6 +25,7 @@ export function mergeConfig(base: BdusageConfig, override: Partial<BdusageConfig
   return {
     aws: { ...base.aws, ...override.aws },
     athena: { ...base.athena, ...override.athena },
+    logs: { ...base.logs, ...override.logs },
     cost: { ...base.cost, ...override.cost },
     output: { ...base.output, ...override.output },
   };

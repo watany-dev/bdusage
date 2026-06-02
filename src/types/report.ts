@@ -56,6 +56,24 @@ export interface SummaryTotals {
   top_driver: string | null;
 }
 
+export interface LatencyPercentiles {
+  p50: number | null;
+  p95: number | null;
+}
+
+export interface TodayReport {
+  requests: number;
+  tokens: TokenTotals;
+  latency_ms: LatencyPercentiles;
+  estimated_cost: number | null;
+  top_model: string | null;
+}
+
+export interface EstimateReportMeta
+  extends Omit<ReportMeta, "billingDataStatus" | "billingDataLatest"> {
+  estimateDisclaimer: string;
+}
+
 export interface ReportEnvelope<T> {
   meta: ReportMeta;
   rows: T[];

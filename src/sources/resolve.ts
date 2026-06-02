@@ -23,6 +23,11 @@ export async function resolveBillingSource(
   config: BdusageConfig,
   executor: AthenaExecutor | null,
 ): Promise<BillingSource> {
+  if (requested === "logs") {
+    throw new Error(
+      "Billing commands require --source cur|ce|auto. Use `bdusage today --source logs` for CloudWatch Logs estimates.",
+    );
+  }
   if (requested === "ce") {
     return createCe();
   }

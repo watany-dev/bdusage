@@ -14,11 +14,42 @@ vi.mock("../config/load.js", async (importOriginal) => {
         workgroup: "wg",
         output_location: "s3://x/",
       },
+      logs: { log_group: "/aws/bedrock/modelinvocations" },
       cost: { metric: "unblended" as const },
       output: { default_format: "table" as const, currency: "USD" },
     }),
   };
 });
+
+vi.mock("../aws/cloudwatch-logs.js", () => ({
+  createCloudWatchLogsClient: vi.fn(),
+  LiveCloudWatchLogsClient: class {
+    async runInsightsQuery() {
+      return [
+        {
+          modelId: "anthropic.claude-3-5-sonnet-20241022-v2:0",
+          requests: "1",
+          input_tokens: "10",
+          output_tokens: "5",
+        },
+      ];
+    }
+  },
+}));
+
+vi.mock("../aws/pricing.js", () => ({
+  createPricingClient: vi.fn(),
+  LivePricingCatalog: class {
+    async getModelRates() {
+      return {
+        inputPerToken: 0.000003,
+        outputPerToken: 0.000015,
+        cacheReadPerToken: 0,
+        cacheWritePerToken: 0,
+      };
+    }
+  },
+}));
 
 vi.mock("../aws/sts.js", () => ({
   getCallerIdentity: vi.fn().mockResolvedValue({
@@ -71,8 +102,8 @@ describe("buildCommandContext", () => {
     expect((await allCtx.resolvePrincipal()).kind).toBe("all");
   });
 
-  it("rejects unsupported source values", async () => {
-    await expect(buildCommandContext({ source: "logs" as "cur" })).rejects.toThrow(
+  it("rejects invalid source values", async () => {
+    await expect(buildCommandContext({ source: "nope" as "cur" })).rejects.toThrow(
       "Unsupported source",
     );
   });
@@ -104,6 +135,12 @@ describe("buildCommandContext", () => {
     const ceCtx = await buildCommandContext({ source: "ce" });
     const ceBilling = await ceCtx.createBillingSource();
     expect(ceBilling.resolved).toBe("ce");
+  });
+
+  it("createEstimateSource returns logs source", async () => {
+    const ctx = await buildCommandContext({ source: "logs" });
+    const estimate = await ctx.createEstimateSource();
+    expect(estimate.resolved).toBe("logs");
   });
 });
 

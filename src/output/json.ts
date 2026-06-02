@@ -1,4 +1,4 @@
-import type { ReportEnvelope } from "../types/report.js";
+import type { EstimateReportMeta, ReportEnvelope, TodayReport } from "../types/report.js";
 
 export function renderJson<T>(envelope: ReportEnvelope<T>): string {
   const payload = {
@@ -13,6 +13,21 @@ export function renderJson<T>(envelope: ReportEnvelope<T>): string {
     currency: envelope.meta.currency,
     rows: envelope.rows,
     totals: envelope.totals ?? {},
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
+export function renderTodayJson(meta: EstimateReportMeta, report: TodayReport): string {
+  const payload = {
+    version: meta.version,
+    source: meta.source,
+    source_label: meta.sourceLabel,
+    profile: meta.profile,
+    principal: meta.principalDisplay,
+    period: meta.period,
+    currency: meta.currency,
+    estimate_disclaimer: meta.estimateDisclaimer,
+    report,
   };
   return `${JSON.stringify(payload, null, 2)}\n`;
 }

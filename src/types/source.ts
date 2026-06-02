@@ -1,13 +1,14 @@
-export const SOURCE_NAMES = ["cur", "ce", "auto"] as const;
+export const SOURCE_NAMES = ["cur", "ce", "logs", "auto"] as const;
 
 export type SourceName = (typeof SOURCE_NAMES)[number];
 
-/** Source that actually produced the report (auto resolves to cur or ce). */
-export type ResolvedSourceName = "cur" | "ce";
+/** Source that actually produced the report (auto resolves to cur or ce; logs is explicit). */
+export type ResolvedSourceName = "cur" | "ce" | "logs";
 
 const SOURCE_LABELS: Record<ResolvedSourceName, string> = {
   cur: "CUR 2.0 actual",
   ce: "Cost Explorer actual-lite",
+  logs: "CloudWatch Logs estimate",
 };
 
 export function resolveSourceLabel(source: ResolvedSourceName): string {

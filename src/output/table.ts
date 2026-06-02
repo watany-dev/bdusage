@@ -1,5 +1,13 @@
-import type { DailyRow, ModelRow, MonthlyRow, ReportMeta, SummaryTotals } from "../types/report.js";
-import { formatTokens, formatUsd } from "./format-numbers.js";
+import type {
+  DailyRow,
+  EstimateReportMeta,
+  ModelRow,
+  MonthlyRow,
+  ReportMeta,
+  SummaryTotals,
+  TodayReport,
+} from "../types/report.js";
+import { formatEstimateUsd, formatTokens, formatUsd } from "./format-numbers.js";
 
 function headerBlock(meta: ReportMeta): string[] {
   const lines = [
@@ -91,6 +99,42 @@ export function renderModelsTable(meta: ReportMeta, rows: ModelRow[]): string {
     );
   }
   return `${lines.join("\n")}\n`;
+}
+
+function estimateHeaderBlock(meta: EstimateReportMeta): string[] {
+  return [
+    meta.version,
+    `source: ${meta.sourceLabel}`,
+    `profile: ${meta.profile}`,
+    `principal: ${meta.principalDisplay}`,
+    `period: ${meta.period.since}`,
+    meta.estimateDisclaimer,
+  ];
+}
+
+export function renderTodayTable(meta: EstimateReportMeta, report: TodayReport): string {
+  const costLine =
+    report.estimated_cost === null
+      ? "Estimated cost: unavailable (Price List API)"
+      : `Estimated cost: ${formatEstimateUsd(report.estimated_cost)}`;
+  const latency =
+    report.latency_ms.p50 === null
+      ? "-"
+      : `p50 ${Math.round(report.latency_ms.p50)} ms, p95 ${Math.round(report.latency_ms.p95 ?? 0)} ms`;
+  const lines = [
+    ...estimateHeaderBlock(meta),
+    "",
+    `Requests:      ${report.requests}`,
+    `Input tokens:  ${formatTokens(report.tokens.input)}`,
+    `Output tokens: ${formatTokens(report.tokens.output)}`,
+    `Cache read:    ${formatTokens(report.tokens.cache_read)}`,
+    `Cache write:   ${formatTokens(report.tokens.cache_write)}`,
+    `Latency:       ${latency}`,
+    costLine,
+    `Top model:     ${report.top_model ?? "-"}`,
+    "",
+  ];
+  return lines.join("\n");
 }
 
 export function renderSummaryTable(meta: ReportMeta, totals: SummaryTotals): string {

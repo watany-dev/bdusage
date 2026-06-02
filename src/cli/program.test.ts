@@ -8,18 +8,20 @@ describe("createProgram", () => {
     expect(names).toContain("daily");
     expect(names).toContain("doctor");
     expect(names).toContain("summary");
+    expect(names).toContain("today");
   });
 });
 
 describe("normalizeSource", () => {
-  it("accepts cur, ce, and auto", () => {
+  it("accepts cur, ce, logs, and auto", () => {
     expect(normalizeSource("cur")).toBe("cur");
     expect(normalizeSource("ce")).toBe("ce");
+    expect(normalizeSource("logs")).toBe("logs");
     expect(normalizeSource("auto")).toBe("auto");
   });
 
   it("rejects later-phase sources", () => {
-    expect(() => normalizeSource("logs")).toThrow("not available yet");
+    expect(() => normalizeSource("metrics")).toThrow("not available yet");
   });
 
   it("rejects unknown sources", () => {

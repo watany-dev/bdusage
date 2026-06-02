@@ -62,7 +62,9 @@
 
 ---
 
-### v0.3 — Logs estimate
+### v0.3 — Logs estimate（リリース済み）
+
+**目的**: 請求反映前の Bedrock 利用を CloudWatch Logs から速報（estimate）する。
 
 | 機能 | 内容 |
 |------|------|
@@ -71,6 +73,14 @@
 | メトリクス | request 数、input/output tokens、latency p50/p95 |
 | 概算コスト | Price List API（`~$` 表記、`estimated cost, not billing data`） |
 | セキュリティ | 本文フィールドを query で返さない |
+
+**受け入れ条件**:
+
+1. `bdusage today --source logs` が CloudWatch Logs 設定済み環境で成功する（要 AWS 環境）
+2. レポートヘッダに `source: CloudWatch Logs estimate` を表示（actual と混在しない）
+3. 概算コストに `~$` と `estimated cost, not billing data` 注記
+4. Logs Insights クエリに本文フィールドを含めない
+5. `doctor` が log group / Insights の案内を出す
 
 ---
 
@@ -125,7 +135,7 @@ v0.1 CUR actual MVP     ← リリース済み
     ↓
 v0.2 Cost Explorer      ← リリース済み（CUR 未設定環境の fallback）
     ↓
-v0.3 Logs estimate      ← today / 速報
+v0.3 Logs estimate      ← リリース済み（today / 速報）
     ↓
 v0.4 Managed mode       ← 組織内の厳密な principal スコープ
     ↓
