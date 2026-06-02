@@ -24,8 +24,23 @@ export class LiveCostExplorerClient implements CostExplorerClientLike {
   constructor(private readonly client: CostExplorerClient) {}
 
   async getCostAndUsage(input: GetCostAndUsageCommandInput): Promise<ResultByTime[]> {
-    const response = await this.client.send(new GetCostAndUsageCommand(input));
-    return response.ResultsByTime ?? [];
+    const results: ResultByTime[] = [];
+    let nextPageToken: string | undefined;
+
+    do {
+      const response = await this.client.send(
+        new GetCostAndUsageCommand({
+          ...input,
+          ...(nextPageToken ? { NextPageToken: nextPageToken } : {}),
+        }),
+      );
+      if (response.ResultsByTime) {
+        results.push(...response.ResultsByTime);
+      }
+      nextPageToken = response.NextPageToken;
+    } while (nextPageToken);
+
+    return results;
   }
 }
 
