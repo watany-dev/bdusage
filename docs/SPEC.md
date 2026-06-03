@@ -2,7 +2,7 @@
 
 作成日: 2026-06-02  
 想定読者: 開発者、FinOps担当、AWS管理者  
-ステータス: Draft v0.1
+ステータス: Draft v0.1.0-beta
 
 ## 1. 概要
 
@@ -161,7 +161,7 @@ npm バージョンと実装ステップ（Step 1–5）の対応は [ROADMAP.md
 ```bash
 --profile <name>              # AWS API 用プロファイル
 --region <region>             # AWS API 実行リージョン
---source <cur|ce|logs|metrics|auto>   # データソース（デフォルト: auto）
+--source <cur|ce|logs|auto>   # データソース（デフォルト: auto）。metrics は計画
 --cur-engine <auto|duckdb|athena>    # CUR backend（デフォルト: auto。config の cur.engine と連動）
 --principal self              # 自分の caller identity のみ（デフォルト）
 --principal <arn>             # 指定 IAM principal ARN
@@ -211,7 +211,7 @@ npm バージョンと実装ステップ（Step 1–5）の対応は [ROADMAP.md
 ### 11.1 出力例
 
 ```text
-bdusage v0.3.1
+bdusage v0.1.0-beta.0
 source: CUR 2.0 actual
 engine: DuckDB direct Parquet
 profile: default
@@ -258,18 +258,15 @@ Total        $1.72     361.2k    49.5k     812.0k      24.1k
 
 ## 13. monthly コマンド
 
-月次の利用料金を表示する。`--group model` 等でグループ化可能。
+月次の利用料金を表示する。
 
 ### 13.1 デフォルト出力
 
 月ごとの Cost, Input, Output, Cache Read, Cache Write, Top Model。
 
-### 13.2 グループ化
+### 13.2 グループ化（計画）
 
-```bash
-npx bdusage monthly --since 2026-01-01 --group model
-npx bdusage monthly --group principal --all
-```
+`--group model` / `--group principal` 等は未実装（§10 参照）。将来バージョンで追加予定。
 
 ## 14. models コマンド
 
@@ -532,7 +529,7 @@ actual cost は CUR の cost 列のみを使用する。独自単価計算は行
 
 ```json
 {
-  "version": "bdusage v0.3.1",
+  "version": "bdusage v0.1.0-beta.0",
   "source": "cur",
   "source_label": "CUR 2.0 actual",
   "engine": "duckdb",
@@ -591,9 +588,11 @@ actual cost は CUR の cost 列のみを使用する。独自単価計算は行
 | principal map | DynamoDB で session → user マッピング |
 | スコープ | `self` / `team` / `admin` |
 
-## 21. 将来コマンドと拡張
+## 21. 拡張コマンドとロードマップ
 
-### 21.1 users
+v0.1 で実装済みの追加コマンドと、将来バージョン向けの計画を記す。コマンド一覧の正は §9。
+
+### 21.1 users（v0.1）
 
 ```bash
 npx bdusage users --all --since 30d
@@ -603,7 +602,7 @@ IAM principal 別の Bedrock コストランキング（コスト降順）。**`
 
 `--principal` / `--principal-role` / `--principal-tag` / `--principal-from-profile` は指定不可（全 principal を対象とするため）。
 
-### 21.1a weekly
+### 21.1a weekly（v0.1）
 
 ```bash
 npx bdusage weekly --since 90d
@@ -746,7 +745,7 @@ bdusage/
     output/
     config/
     doctor/
-  tests/fixtures/cur/
+  tests/fixtures/cur/   # DuckDB integration test が実行時に Parquet を生成
 ```
 
 ### 24.1 技術スタック
@@ -776,16 +775,13 @@ v0.1 の受け入れ条件:
 6. CloudWatch Logs 本文は取得・表示しない
 7. `--all` は help に管理者向けと明記
 8. `cur` と `logs` 出力で actual / estimate を明確に区別
-
-### v0.3.1（CUR DuckDB engine）
-
-1. `cur.duckdb.files` のみで `summary`, `daily`, `monthly`, `models` が動作する
-2. Athena 未設定でも DuckDB backend が動作する
-3. 旧 `[athena]` config は互換読み込みされる
-4. レポートに `source: CUR 2.0 actual` と `engine:` が出る
-5. `doctor` が DuckDB / Athena 各チェックを出す
-6. `--source cur --cur-engine duckdb` 失敗時に Athena / CE へ暗黙フォールバックしない
-7. `--source cur --cur-engine auto` は DuckDB → Athena のみ試し、CE にはフォールバックしない
+9. `cur.duckdb.files` のみで `summary`, `daily`, `monthly`, `models` が動作する
+10. Athena 未設定でも DuckDB backend が動作する
+11. 旧 `[athena]` config は互換読み込みされる
+12. レポートに `source: CUR 2.0 actual` と `engine:` が出る
+13. `doctor` が DuckDB / Athena 各チェックを出す
+14. `--source cur --cur-engine duckdb` 失敗時に Athena / CE へ暗黙フォールバックしない
+15. `--source cur --cur-engine auto` は DuckDB → Athena のみ試し、CE にはフォールバックしない
 
 ## 26. 未決定事項
 
