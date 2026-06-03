@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+      - 'v*.*.*-beta*'
 
 permissions:
   contents: read
@@ -93,5 +94,15 @@ jobs:
       - name: Install latest npm for OIDC support
         run: npm install -g npm@latest
 
+      - name: Determine npm dist-tag
+        id: dist
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          if [[ "$VERSION" == *-* ]]; then
+            echo "tag=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to npm (OIDC Trusted Publishing)
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --tag ${{ steps.dist.outputs.tag }}

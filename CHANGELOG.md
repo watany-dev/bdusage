@@ -4,44 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.3.2] - 2026-06-02
+## [0.1.0-beta.0] - 2026-06-03
+
+初回 beta リリース。開発 Step 1–5 の機能を v0.1 としてまとめる。
 
 ### Added
 
-- `weekly` command: ISO week (Monday start, UTC) cost and token rollup (CUR Athena/DuckDB, CE)
-- `users --all` command: IAM principal cost ranking from CUR (`--source cur` required)
+- **CUR actual**: `summary`, `daily`, `monthly`, `models`, `whoami`, `doctor`（Athena backend）
+- **Cost Explorer fallback**: `--source ce`, `--source auto`, `--principal-tag`
+- **Logs estimate**: `today --source logs`, CloudWatch Logs + Price List API
+- **CUR DuckDB engine**: `--cur-engine duckdb|athena|auto`, `[cur.duckdb]` / `[cur.athena]` 設定
+- **weekly / users**: 週次レポート、`users --all`（CUR principal ランキング）
+- Report headers: `source:` + CUR 時 `engine:`、`--json` / `--csv` 出力
 
 ### Fixed
 
-- `COMMAND_NAMES` includes `weekly`; docs aligned with DuckDB merge from main
-- CE weekly `top_model` via usage-type rollup; `users` rejects `--principal-from-profile`
-
-## [0.3.1] - 2026-06-02
-
-### Added
-
-- CUR **DuckDB direct Parquet** backend (`--cur-engine duckdb|athena|auto`)
-- Config sections `[cur]`, `[cur.duckdb]`, `[cur.athena]`; legacy `[athena]` migration on load
-- Report headers: `engine: DuckDB direct Parquet` or `engine: Athena` for CUR actual reports
-- JSON fields `engine` / `engine_label` when applicable
-- `doctor` checks for DuckDB (files, httpfs, sample query, required columns, IAM principal)
+- CLI async コマンドが `process.exit` 前に終了し出力されない問題（`parseAsync` + `process.exitCode`）
 
 ### Changed
 
-- CUR Athena implementation moved to `src/sources/cur-athena/`
-- `@duckdb/node-api` added as runtime dependency (external in CLI bundle)
+- npm バージョンを v0.1 系に整理（旧内部ラベル v0.2–v0.3.2 は ROADMAP の実装ステップへ移行）
+- beta 公開: `git tag v0.1.0-beta.0` → npm dist-tag `beta`
 
-## [0.3.0]
+## [0.1.0] — 未リリース（scaffold のみ）
 
-### Added
-
-- CloudWatch Logs estimate source and `today --source logs`
-- Cost Explorer fallback (`--source ce`)
-
-## [0.1.0] and earlier
-
-### Added
-
-- Project scaffold: README (user-facing CLI), docs/SPEC.md, docs/ROADMAP.md
-- CI/CD aligned with watany-dev/review-codecommit (actionlint, zizmor, lint, typecheck, security, test, build, npm publish)
-- Minimal CLI stub (`--version`, `--help`, unimplemented command message)
+- Project scaffold: README, docs/SPEC.md, docs/ROADMAP.md
+- CI/CD（actionlint, zizmor, lint, typecheck, security, test, build, npm publish workflow）
+- Minimal CLI stub（`--version`, `--help`）

@@ -3,7 +3,7 @@
 Amazon Bedrock の使用量と利用料金をターミナルから確認する CLI。体験は [`ccusage`](https://ccusage.com/guide/) に近く、AWS の課金データ（実請求）と監視データ（概算）を分けて表示します。
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-v0.3.1-green)
+![Status](https://img.shields.io/badge/status-v0.1.0--beta-orange)
 
 > **注意**: IAM principal 単位の正確な実コストには **CUR 2.0** が必要です。読み取りは **DuckDB direct Parquet**（推奨、`cur.duckdb.files`）または **Athena**（`cur.athena`）を選べます。CUR 未設定時は `--source ce` または `--source auto`（cur → ce フォールバック）で Cost Explorer の actual-lite を利用できます。
 
@@ -178,7 +178,7 @@ npx bdusage doctor
 ### summary
 
 ```text
-bdusage v0.3.1
+bdusage v0.1.0-beta.0
 source: CUR 2.0 actual
 engine: DuckDB direct Parquet
 profile: default
@@ -204,7 +204,7 @@ Total        $1.72     361.2k    49.5k     812.0k      24.1k
 ### today（estimate）
 
 ```text
-bdusage v0.3.0
+bdusage v0.1.0-beta.0
 source: CloudWatch Logs estimate
 profile: default
 principal: arn:aws:sts::123456789012:assumed-role/BedrockDeveloper/alice@example.com
@@ -251,22 +251,35 @@ bun run build
 
 | バージョン | 内容 |
 |------------|------|
-| **v0.1** | CUR actual MVP — summary / daily / monthly / models / whoami / doctor |
-| **v0.2** | Cost Explorer fallback、`--source ce`、`--principal-tag` |
-| **v0.3** | CloudWatch Logs estimate、`today --source logs` |
-| v0.4 | Managed mode（サーバー側 principal スコープ） |
-| v0.5+ | anomaly, budget, CI/Slack 連携 |
+| **v0.1**（beta） | Step 1–5 完了分 — CUR / CE / Logs / DuckDB / weekly / users |
+| v0.2 | Managed mode（サーバー側 principal スコープ） |
+| v0.3+ | anomaly, budget, CI/Slack 連携 |
 
-詳細は [docs/ROADMAP.md](./docs/ROADMAP.md) を参照してください。
+実装ステップ（Step 1–5）と npm バージョンの関係は [docs/ROADMAP.md](./docs/ROADMAP.md) を参照してください。
 
 ## Release Process
 
-`review-codecommit` と同様、GitHub Actions + npm Trusted Publishing（OIDC）で公開します。
+GitHub Actions + npm Trusted Publishing（OIDC）で公開します。
 
-1. `package.json` の `version` を更新
-2. `bun install` で lockfile を更新
-3. `bun run ci` をローカルで成功させる
-4. `git tag vX.Y.Z` を push
+### Stable
+
+1. `package.json` / `src/version.ts` の `version` を更新（例: `0.1.0`）
+2. `bun run ci` をローカルで成功させる
+3. `git tag v0.1.0` を push → npm dist-tag `latest`
+
+### Beta
+
+1. `version` を prerelease に設定（例: `0.1.0-beta.0`）
+2. `bun run ci` をローカルで成功させる
+3. `git tag v0.1.0-beta.0` を push → npm dist-tag `beta`
+
+インストール:
+
+```bash
+npx bdusage@beta
+# または特定バージョン
+npx bdusage@0.1.0-beta.0
+```
 
 ## License
 

@@ -54,17 +54,15 @@ Do not skip these checks.
 | `src/output/` | table / json / csv formatters |
 | `src/doctor/` | Setup diagnostics |
 | `src/config/` | `config.toml` load/merge |
-| `docs/SPEC.md` | Full product & engineering spec (Draft v0.3.1) |
+| `docs/SPEC.md` | Full product & engineering spec (Draft v0.1) |
 | `docs/DESIGN.md` | Source / engine separation, DuckDB backend design |
 | `docs/ROADMAP.md` | Version-scoped release plan |
 
-## Commands (v0.1 target)
+## Commands (v0.1)
 
-`summary`, `daily`, `monthly`, `models`, `whoami`, `doctor` — `npx bdusage` aliases `summary`.
+`summary`, `daily`, `weekly`, `monthly`, `models`, `users --all`, `whoami`, `doctor`, `today --source logs`. Use `--source cur|ce|logs|auto` for billing; `--source logs` for estimates only. Use `--cur-engine auto|duckdb|athena` for CUR backend selection. `users` requires `--source cur`.
 
-Not in v0.1: `today --source logs` (v0.3), Cost Explorer fallback (v0.2), managed mode (v0.4), prompt/response body display.
-
-Commands (current): `summary`, `daily`, `weekly`, `monthly`, `models`, `users --all`, `whoami`, `doctor`, `today --source logs`. Use `--source cur|ce|auto` for billing; `--source logs` for estimates only. Use `--cur-engine auto|duckdb|athena` for CUR backend selection. `users` requires `--source cur`.
+Not in v0.1: managed mode (v0.2), prompt/response body display, `bdusage init`, `doctor --fix`, `cache` command.
 
 ## Domain Rules (must preserve)
 
