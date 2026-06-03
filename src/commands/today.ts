@@ -7,7 +7,7 @@ import { buildEstimateReportMeta } from "./report-meta.js";
 export async function runToday(ctx: CommandContext): Promise<string> {
   if (ctx.options.source !== "logs") {
     throw new Error(
-      "today requires --source logs (CloudWatch Logs estimate). See docs/ROADMAP.md v0.3.",
+      "today requires --source logs (CloudWatch Logs estimate). See docs/ROADMAP.md Step 3.",
     );
   }
 

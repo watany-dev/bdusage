@@ -26,7 +26,11 @@ export function formatHelpText(): string {
   ].join("\n");
 }
 
-export function runCli(argv: readonly string[]): number {
+function readExitCode(): number {
+  return typeof process.exitCode === "number" ? process.exitCode : 0;
+}
+
+export async function runCli(argv: readonly string[]): Promise<number> {
   const args = argv.slice(2);
 
   if (args.includes("--version") || args.includes("-V")) {
@@ -39,16 +43,14 @@ export function runCli(argv: readonly string[]): number {
     return 0;
   }
 
-  if (args.length === 0) {
-    const program = createProgram();
-    program.parse([argv[0] ?? "node", TOOL_NAME]);
-    return 0;
-  }
-
   try {
     const program = createProgram();
-    program.parse(argv);
-    return 0;
+    if (args.length === 0) {
+      await program.parseAsync([argv[0] ?? "node", TOOL_NAME]);
+    } else {
+      await program.parseAsync(argv);
+    }
+    return readExitCode();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(message);

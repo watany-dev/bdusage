@@ -128,7 +128,7 @@ export function createProgram(): Command {
         .command(name)
         .description(description)
         .action(async function (this: Command) {
-          process.exit(await runWithHandler(this, runner));
+          process.exitCode = await runWithHandler(this, runner);
         }),
     );
   };
@@ -145,7 +145,7 @@ export function createProgram(): Command {
 
   attachGlobalOptions(
     program.action(async function (this: Command) {
-      process.exit(await runWithHandler(this, runSummary));
+      process.exitCode = await runWithHandler(this, runSummary);
     }),
   );
 
