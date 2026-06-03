@@ -27,7 +27,7 @@ describe("runWhoami", () => {
 
   it("shows athena output_location when configured", async () => {
     const ctx = {
-      version: "bdusage v0.3.1",
+      version: "bdusage v0.1.0-beta.0",
       configPath: "/tmp/c.toml",
       config: {
         ...DEFAULT_CONFIG,
@@ -50,7 +50,7 @@ describe("runWhoami", () => {
 
   it("shows duckdb files when configured", async () => {
     const ctx = {
-      version: "bdusage v0.3.1",
+      version: "bdusage v0.1.0-beta.0",
       configPath: "/tmp/c.toml",
       config: {
         ...DEFAULT_CONFIG,

@@ -1,7 +1,7 @@
 # bdusage 設計メモ
 
 作成日: 2026-06-02  
-ステータス: Draft v0.4 design
+ステータス: Draft v0.1.0-beta（CUR engines 実装済み）/ v0.2 managed mode 設計
 
 ## 1. 目的
 
@@ -19,7 +19,7 @@
 
 ## 3. ユーザー体験
 
-初回セットアップ（**v0.3.1 時点では `bdusage init` 未実装**。手動で `config.toml` を作成し `doctor` で検証）:
+初回セットアップ（**v0.1 では `bdusage init` 未実装**。手動で `config.toml` を作成し `doctor` で検証）:
 
 ```bash
 npx bdusage init   # 将来: 対話的 config 作成
@@ -304,7 +304,7 @@ Athena backend の責務:
 
 ### 9.2 doctor
 
-`doctor` の**目標 UI**は source / engine 単位の階層表示。v0.3.1 実装はフラットなチェック名一覧（`duckdb_*`, `athena_*` 等）。SPEC §16.2 参照。
+`doctor` の**目標 UI**は source / engine 単位の階層表示。v0.1 実装はフラットなチェック名一覧（`duckdb_*`, `athena_*` 等）。SPEC §16.2 参照。
 
 ```text
 ✓ duckdb_files: 1 path(s): s3://...

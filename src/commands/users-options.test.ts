@@ -5,7 +5,7 @@ import { assertUsersBillingSource, assertUsersCommandOptions } from "./users-opt
 
 function baseCtx(overrides: Partial<CommandContext> = {}): CommandContext {
   return {
-    version: "bdusage v0.3.0",
+    version: "bdusage v0.1.0-beta.0",
     configPath: "/tmp/config.toml",
     config: DEFAULT_CONFIG,
     options: { source: "cur", allPrincipals: true },

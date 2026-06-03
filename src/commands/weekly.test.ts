@@ -22,7 +22,7 @@ function mockCtx(overrides: Partial<CommandContext> = {}): CommandContext {
     fetchBillingFreshness: vi.fn().mockResolvedValue({ status: "partial", latest: "2026-06-01" }),
   };
   return {
-    version: "bdusage v0.3.0",
+    version: "bdusage v0.1.0-beta.0",
     configPath: "/tmp/config.toml",
     config: DEFAULT_CONFIG,
     options: { source: "cur" },

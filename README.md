@@ -243,7 +243,8 @@ bun run build
 | ドキュメント | 内容 |
 |--------------|------|
 | [docs/ROADMAP.md](./docs/ROADMAP.md) | バージョン別ロードマップ |
-| [docs/SPEC.md](./docs/SPEC.md) | 開発者向け仕様書（Draft v0.1） |
+| [docs/SPEC.md](./docs/SPEC.md) | 開発者向け仕様書（Draft v0.1.0-beta） |
+| [docs/v0.1-smoke-checklist.md](./docs/v0.1-smoke-checklist.md) | beta 公開前の手動確認（AWS 実環境） |
 
 ## ロードマップ（要約）
 

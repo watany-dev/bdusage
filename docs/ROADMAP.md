@@ -55,7 +55,8 @@
 
 1. npm Trusted Publishing（OIDC）を GitHub リポジトリに紐付け
 2. `bun run ci` が通ることを確認
-3. `git tag v0.1.0-beta.0` を push → publish workflow が `--tag beta` で公開
+3. [v0.1 手動スモークチェックリスト](./v0.1-smoke-checklist.md) を実施
+4. `git tag v0.1.0-beta.0` を push → publish workflow が `--tag beta` で公開
 
 ---
 
