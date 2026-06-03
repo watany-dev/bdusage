@@ -14,8 +14,8 @@ alwaysApply: true
 
 ## Version scope
 
-- Default implementation target: **v0.1** (CUR + Athena, commands in `src/commands.ts`).
-- Do not add v0.2+ features (`--source ce`, `today --source logs`, managed mode) unless the task explicitly requests a later version.
+- Default implementation target: **v0.1** (ROADMAP Step 1–5): CUR DuckDB/Athena, CE fallback, Logs estimate, weekly, users — see `src/commands.ts`.
+- Do not add **v0.2+** features (managed mode) unless the task explicitly requests a later version.
 - Check [docs/ROADMAP.md](mdc:docs/ROADMAP.md) and [docs/SPEC.md](mdc:docs/SPEC.md) before changing CLI options or output format.
 
 ## Completion checklist

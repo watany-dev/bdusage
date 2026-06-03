@@ -21,4 +21,4 @@ You should receive a response within 72 hours. If the vulnerability is confirmed
 - bdusage uses the AWS SDK credential chain. No credentials are stored or transmitted by the application itself beyond what AWS APIs require for the configured operation.
 - Prompt, request, and response bodies from Bedrock invocation logs are not fetched or displayed by design.
 - Error messages should be sanitized to avoid leaking sensitive AWS resource details where possible.
-- `--principal self` in direct CLI mode is a UX filter, not a security boundary. Use managed mode (v0.4) for enforced principal scoping.
+- `--principal self` in direct CLI mode is a UX filter, not a security boundary. Use managed mode (v0.2) for enforced principal scoping.

@@ -65,7 +65,7 @@ npx bdusage today --source logs
 ```bash
 --profile <name>              # AWS API 用プロファイル
 --region <region>             # AWS API 実行リージョン
---source <cur|ce|logs|metrics|auto>   # データソース（デフォルト: auto → cur 優先）
+--source <cur|ce|logs|auto>   # データソース（デフォルト: auto → cur 優先）
 --cur-engine <auto|duckdb|athena>    # CUR backend（デフォルト: auto → DuckDB → Athena）
 --principal self              # 自分の caller identity のみ（デフォルト）
 --principal <arn>             # 指定 IAM principal ARN
@@ -75,9 +75,7 @@ npx bdusage today --source logs
 --all                         # 全 principal（管理者向け・権限に依存）
 --since <date|duration>       # 例: 7d, 2026-05-01
 --until <date>
---group <date|model|principal|usage-type|operation|account|region>
 --json | --csv | --table      # 出力形式（デフォルト: table）
---currency USD                # 初期版は USD のみ
 --config <path>               # 設定ファイル（デフォルト: ~/.config/bdusage/config.toml）
 ```
 
@@ -115,7 +113,7 @@ npx bdusage users --all --since 30d
 | `cur` | actual | IAM principal 別の正確な実コスト（CUR 2.0。DuckDB または Athena） |
 | `ce` | actual-lite | CUR 未設定時の fallback（Cost Explorer API） |
 | `logs` | estimate | 今日の速報（`today` コマンド） |
-| `metrics` | estimate/volume | モデル別全体傾向（principal 別不可） |
+| `metrics` | estimate/volume（計画） | モデル別全体傾向（principal 別不可・CLI 未対応） |
 
 金額系レポートのデフォルト優先順位: **cur → ce → 失敗時は `doctor` を案内**。
 
@@ -169,7 +167,7 @@ npx bdusage doctor
 
 ## セキュリティ上の注意
 
-- `--principal self` は **UX 上のフィルタ** であり、CLI 単体ではセキュリティ境界ではありません。一般ユーザーに自分の分だけを厳密に見せるには v0.4 の **managed mode** を利用してください。
+- `--principal self` は **UX 上のフィルタ** であり、CLI 単体ではセキュリティ境界ではありません。一般ユーザーに自分の分だけを厳密に見せるには v0.2 の **managed mode** を利用してください。
 - プロンプト / レスポンス本文は **取得・表示しません**（Invocation Logging に本文が含まれ得るため）。
 - `--all` は管理者向けです。一般ユーザーが指定しても、付与された AWS 権限の範囲で読める場合があります。
 
