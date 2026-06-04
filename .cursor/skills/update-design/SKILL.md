@@ -34,7 +34,7 @@ description: Evaluate and improve bdusage design documents (docs/SPEC.md, docs/R
 
 4. **セキュリティ・コンプライアンス**
    - 本文非取得が要件として明記されているか
-   - `--principal self` と managed mode（v0.4）の境界が誤解されないか
+   - `--principal self` と managed mode（v0.2）の境界が誤解されないか
    - `--all` の管理者向け注記が help / SPEC で揃っているか
 
 5. **バージョン分割**

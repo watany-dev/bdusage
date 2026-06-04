@@ -46,15 +46,18 @@ Do not skip these checks.
 | `src/cli.ts` | CLI entry (`process.exit(runCli(...))`) |
 | `src/cli/program.ts` | Commander program, global options, command dispatch |
 | `src/cli/context.ts` | Config load, principal resolution, error mapping |
-| `src/commands/*.ts` | summary, daily, monthly, models, whoami, doctor |
+| `src/commands/*.ts` | summary, daily, weekly, monthly, models, users, today, whoami, doctor |
+| `src/commands.ts` | CLI command name registry |
 | `src/sources/cur-athena/` | CUR SQL builders, Athena aggregation |
 | `src/sources/cur-duckdb/` | CUR Parquet direct read via DuckDB |
-| `src/aws/` | STS, Athena clients |
+| `src/sources/ce/` | Cost Explorer fallback |
+| `src/sources/logs/` | CloudWatch Logs estimate (`today --source logs`) |
+| `src/aws/` | STS, Athena, Cost Explorer, CloudWatch Logs, Pricing |
 | `src/bedrock/` | usage-type parser, model normalizer |
 | `src/output/` | table / json / csv formatters |
 | `src/doctor/` | Setup diagnostics |
 | `src/config/` | `config.toml` load/merge |
-| `docs/SPEC.md` | Full product & engineering spec (Draft v0.1) |
+| `docs/SPEC.md` | Full product & engineering spec (Draft v0.1.0-beta) |
 | `docs/DESIGN.md` | Source / engine separation, DuckDB backend design |
 | `docs/ROADMAP.md` | Version-scoped release plan |
 
@@ -70,7 +73,7 @@ Not in v0.1: managed mode (v0.2), prompt/response body display, `bdusage init`, 
 2. **CUR actual**: Use billing `cost` columns only; no custom per-token pricing for actual reports.
 3. **IAM principal**: Filter via `line_item_iam_principal` (CUR 2.0 with `INCLUDE_IAM_PRINCIPAL_DATA`).
 4. **Security**: Never fetch or display invocation log bodies (`inputBody`, `outputBody`, etc.).
-5. **`--principal self`**: UX filter in direct mode, not a security boundary (managed mode in v0.4).
+5. **`--principal self`**: UX filter in direct mode, not a security boundary (managed mode in v0.2).
 6. **`--all`**: Document as admin-oriented in help; behavior depends on AWS permissions.
 
 ## Engineering Approach

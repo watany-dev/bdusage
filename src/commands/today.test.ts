@@ -16,7 +16,7 @@ describe("runToday", () => {
     const ctx = {
       options: { source: "logs" },
       outputFormat: "table",
-      version: "bdusage v0.3.0",
+      version: "bdusage v0.1.0-beta.0",
       config: { aws: { profile: "p", region: "us-east-1" }, output: { currency: "USD" } },
       createEstimateSource: vi.fn().mockResolvedValue({
         fetchToday: vi.fn().mockResolvedValue({
@@ -41,7 +41,7 @@ describe("runToday", () => {
     const ctx = {
       options: { source: "logs" },
       outputFormat: "json",
-      version: "bdusage v0.3.0",
+      version: "bdusage v0.1.0-beta.0",
       config: { aws: { profile: "p", region: "us-east-1" }, output: { currency: "USD" } },
       createEstimateSource: vi.fn().mockResolvedValue({
         fetchToday: vi.fn().mockResolvedValue({
@@ -62,7 +62,7 @@ describe("runToday", () => {
     const ctx = {
       options: { source: "logs" },
       outputFormat: "csv",
-      version: "bdusage v0.3.0",
+      version: "bdusage v0.1.0-beta.0",
       config: { aws: { profile: "p", region: "us-east-1" }, output: { currency: "USD" } },
       createEstimateSource: vi.fn().mockResolvedValue({
         fetchToday: vi.fn().mockResolvedValue({
