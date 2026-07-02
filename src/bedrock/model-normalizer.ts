@@ -11,12 +11,23 @@ const MODEL_ALIASES: Record<string, string> = {
   "Nova-Micro": "Amazon Nova Micro",
 };
 
+// Pure function of usageType; real CUR data has low usage-type cardinality, so a
+// memo cache avoids re-running the regex chain per aggregated row. Capped defensively.
+const NORMALIZE_CACHE_MAX = 10_000;
+const normalizeCache = new Map<string, string>();
+
 export function normalizeModelName(usageType: string): string {
-  const segment = extractModelSegment(usageType);
-  if (MODEL_ALIASES[segment]) {
-    return MODEL_ALIASES[segment];
+  const cached = normalizeCache.get(usageType);
+  if (cached !== undefined) {
+    return cached;
   }
-  return segment.replace(/-/g, " ").trim();
+  const segment = extractModelSegment(usageType);
+  const result = MODEL_ALIASES[segment] ?? segment.replace(/-/g, " ").trim();
+  if (normalizeCache.size >= NORMALIZE_CACHE_MAX) {
+    normalizeCache.clear();
+  }
+  normalizeCache.set(usageType, result);
+  return result;
 }
 
 export function pickTopModel(costsByModel: Map<string, number>): string | null {

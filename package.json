@@ -59,6 +59,7 @@
   "scripts": {
     "build": "bun run build.ts && tsc --emitDeclarationOnly && chmod +x dist/cli.mjs",
     "test": "vitest run",
+    "bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "lint": "oxlint -c .oxlintrc.json --tsconfig ./tsconfig.json --import-plugin --deny-warnings ./src",

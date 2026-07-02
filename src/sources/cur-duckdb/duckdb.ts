@@ -1,4 +1,4 @@
-import { DuckDBInstance } from "@duckdb/node-api";
+import type { DuckDBInstance } from "@duckdb/node-api";
 import { duckDbS3Region, hasDuckDbFiles } from "../../config/load.js";
 import type { BdusageConfig } from "../../config/schema.js";
 import { escapeSqlLiteral } from "./sql.js";
@@ -20,6 +20,9 @@ export async function createDuckDbExecutor(config: BdusageConfig): Promise<DuckD
     throw new DuckDbUnavailableError("cur.duckdb.files is not set");
   }
 
+  // Lazy-load the native DuckDB binding so commands that never touch DuckDB
+  // (help, Athena/CE/logs sources) don't pay its startup cost.
+  const { DuckDBInstance } = await import("@duckdb/node-api");
   const instance = await DuckDBInstance.create(":memory:");
   const connection = await instance.connect();
 
