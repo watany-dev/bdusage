@@ -75,57 +75,38 @@ export function mapRawDailyRows(rows: RawUsageRow[]): DailyRow[] {
   );
 }
 
+function mapRowsToWeekly(
+  rows: RawUsageRow[],
+  weekKey: (row: RawUsageRow) => string | undefined,
+): WeeklyRow[] {
+  return mapRawPeriodRows(rows, weekKey, (week_start, bucket) => ({
+    week_start,
+    week_end: weekEndFromStart(week_start),
+    cost: bucket.cost,
+    tokens: bucket.tokens,
+    top_model: pickTopModel(bucket.models),
+  }));
+}
+
 /** Build weekly rows from daily-granularity raw rows (usage_date + usage_type). */
 export function mapRawRowsToWeekly(rows: RawUsageRow[]): WeeklyRow[] {
-  const byWeek = new Map<string, RawUsageRow[]>();
-  for (const row of rows) {
+  const weekStartByDate = new Map<string, string>();
+  return mapRowsToWeekly(rows, (row) => {
     const date = row.usage_date;
     if (!date) {
-      continue;
+      return undefined;
     }
-    const weekStart = weekStartMonday(date);
-    const bucket = byWeek.get(weekStart) ?? [];
-    bucket.push({ ...row, week_start: weekStart });
-    byWeek.set(weekStart, bucket);
-  }
-  const weeklyRows: RawUsageRow[] = [];
-  for (const [, group] of byWeek) {
-    weeklyRows.push(...group);
-  }
-  return mapRawWeeklyRows(weeklyRows);
+    let weekStart = weekStartByDate.get(date);
+    if (weekStart === undefined) {
+      weekStart = weekStartMonday(date);
+      weekStartByDate.set(date, weekStart);
+    }
+    return weekStart;
+  });
 }
 
 export function mapRawWeeklyRows(rows: RawUsageRow[]): WeeklyRow[] {
-  const byWeek = new Map<
-    string,
-    { cost: number; tokens: TokenTotals; models: Map<string, number> }
-  >();
-
-  for (const row of rows) {
-    const weekStart = row.week_start;
-    if (!weekStart) {
-      continue;
-    }
-    let bucket = byWeek.get(weekStart);
-    if (!bucket) {
-      bucket = { cost: 0, tokens: emptyTokenTotals(), models: new Map() };
-      byWeek.set(weekStart, bucket);
-    }
-    bucket.cost += row.cost;
-    addUsageAmount(bucket.tokens, row.usage_type, row.usage_amount);
-    const model = normalizeModelName(row.usage_type);
-    bucket.models.set(model, (bucket.models.get(model) ?? 0) + row.cost);
-  }
-
-  return [...byWeek.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([week_start, bucket]) => ({
-      week_start,
-      week_end: weekEndFromStart(week_start),
-      cost: bucket.cost,
-      tokens: bucket.tokens,
-      top_model: pickTopModel(bucket.models),
-    }));
+  return mapRowsToWeekly(rows, (row) => row.week_start);
 }
 
 export function mapRawUserRows(rows: RawUsageRow[]): UserRow[] {

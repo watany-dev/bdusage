@@ -70,6 +70,30 @@ describe("mapRawRowsToWeekly", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]?.top_model).toBe("Claude 3.5 Sonnet");
   });
+
+  it("splits a Sunday/Monday boundary into separate weeks and aggregates repeated dates", () => {
+    const rows = mapRawRowsToWeekly([
+      // 2026-06-07 is a Sunday (week of 2026-06-01), 2026-06-08 a Monday (next week)
+      { usage_date: "2026-06-07", usage_type: "T-Input-Tokens", cost: 1, usage_amount: 10 },
+      { usage_date: "2026-06-07", usage_type: "T-Output-Tokens", cost: 2, usage_amount: 5 },
+      { usage_date: "2026-06-08", usage_type: "T-Input-Tokens", cost: 4, usage_amount: 20 },
+      { usage_type: "T-Input-Tokens", cost: 100, usage_amount: 1 },
+    ]);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        week_start: "2026-06-01",
+        week_end: "2026-06-07",
+        cost: 3,
+        tokens: expect.objectContaining({ input: 10, output: 5 }),
+      }),
+      expect.objectContaining({
+        week_start: "2026-06-08",
+        week_end: "2026-06-14",
+        cost: 4,
+        tokens: expect.objectContaining({ input: 20 }),
+      }),
+    ]);
+  });
 });
 
 describe("mapRawWeeklyRows", () => {

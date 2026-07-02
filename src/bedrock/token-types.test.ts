@@ -15,6 +15,11 @@ describe("classifyUsageType", () => {
     expect(classifyUsageType("USE1-Claude-Cache-Read-Tokens")).toBe("cache_read");
     expect(classifyUsageType("USE1-Claude-Cache-Write-Tokens")).toBe("cache_write");
   });
+
+  it("returns the same result on repeated calls (memoized)", () => {
+    expect(classifyUsageType("APN1-Nova-Pro-InputToken")).toBe("input");
+    expect(classifyUsageType("APN1-Nova-Pro-InputToken")).toBe("input");
+  });
 });
 
 describe("addUsageAmount", () => {

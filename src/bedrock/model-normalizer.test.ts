@@ -9,4 +9,11 @@ describe("normalizeModelName", () => {
   it("falls back to hyphen replacement", () => {
     expect(normalizeModelName("USE1-Custom-Model-Input-Tokens")).toBe("Custom Model");
   });
+
+  it("returns the same result on repeated calls (memoized)", () => {
+    const first = normalizeModelName("USE1-Claude-3-Haiku-Output-Tokens");
+    const second = normalizeModelName("USE1-Claude-3-Haiku-Output-Tokens");
+    expect(first).toBe("Claude 3 Haiku");
+    expect(second).toBe(first);
+  });
 });

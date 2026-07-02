@@ -5,7 +5,25 @@ const OUTPUT_PATTERNS = [/Output-Tokens/i, /OutputToken/i];
 const CACHE_READ_PATTERNS = [/Cache-Read/i, /CacheRead/i, /Prompt-Cache-Read/i];
 const CACHE_WRITE_PATTERNS = [/Cache-Write/i, /CacheWrite/i, /Prompt-Cache-Write/i];
 
+// Pure function of usageType with low real-world cardinality; memoized to avoid
+// re-running up to 9 regex tests per aggregated row. Capped defensively.
+const CLASSIFY_CACHE_MAX = 10_000;
+const classifyCache = new Map<string, TokenKind>();
+
 export function classifyUsageType(usageType: string): TokenKind {
+  const cached = classifyCache.get(usageType);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const kind = classifyUncached(usageType);
+  if (classifyCache.size >= CLASSIFY_CACHE_MAX) {
+    classifyCache.clear();
+  }
+  classifyCache.set(usageType, kind);
+  return kind;
+}
+
+function classifyUncached(usageType: string): TokenKind {
   if (CACHE_READ_PATTERNS.some((p) => p.test(usageType))) {
     return "cache_read";
   }
